@@ -29,9 +29,10 @@ export default function RegisterPage() {
 
   async function onSubmit({ email, password }: Form) {
     setError(null)
+    const redirectBase = import.meta.env.VITE_APP_URL || window.location.origin
     const { error } = await supabase.auth.signUp({
       email, password,
-      options: { emailRedirectTo: `${window.location.origin}/verify` },
+      options: { emailRedirectTo: `${redirectBase}/verify` },
     })
     if (error) { setError(error.message); return }
     setSent(true)
