@@ -5,14 +5,6 @@
       "schedule": "31 18 * * *"
     }
   ],
-  "functions": {
-    "src/app/api/v1/billing/cron/daily-deduct/route.ts": {
-      "maxDuration": 300
-    },
-    "src/app/api/v1/storage/upload/route.ts": {
-      "maxDuration": 60
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",

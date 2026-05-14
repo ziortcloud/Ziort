@@ -1,6 +1,7 @@
 ﻿// POST /api/v1/storage/upload
 // Accepts multipart/form-data with: file, folder, entityId
 // Returns: { key, publicUrl }
+export const maxDuration = 60
 import { requireSession, requireEntityAccess } from '@/ziorbitcore/auth/session'
 import { uploadFromFormData, type StorageFolder } from '@/ziorbitcore/services/storage'
 import { ok, badRequest, forbidden, serverError, withErrorHandler } from '@/ziorbitcore/api/response'

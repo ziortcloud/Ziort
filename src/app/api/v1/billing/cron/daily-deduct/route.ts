@@ -2,6 +2,7 @@
 // Called by Vercel cron at 00:01 IST every day.
 // Calculates and deducts daily cost for every active entity.
 // Protected by CRON_SECRET header.
+export const maxDuration = 300
 import { db } from '@/ziorbitcore/db/client'
 import { requireCronSecret } from '@/ziorbitcore/auth/session'
 import { calculateDailyCost, paiseToCurrency, isLowBalance } from '@/ziorbitcore/services/billing'
