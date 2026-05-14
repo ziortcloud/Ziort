@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #0d0e14;
+    --foreground: #e2e8f0;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-orbit-midnight text-zi-white;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-zi-blue; }
+}
+
+/* ─── Auth / space animation keyframes ───────────────────────────────────── */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.08; transform: scale(1); }
+  50%       { opacity: 1;    transform: scale(1.4); }
+}
+@keyframes float-y {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+@keyframes shimmer-x {
+  from { transform: translateX(-200%) skewX(-12deg); }
+  to   { transform: translateX(200%)  skewX(-12deg); }
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.45; }
+  50%       { opacity: 1; }
+}
+@keyframes aurora-drift {
+  0%   { transform: translate(-15%, -10%) scale(1.1) rotate(0deg); }
+  50%  { transform: translate(15%, 10%)   scale(0.9) rotate(30deg); }
+  100% { transform: translate(-15%, -10%) scale(1.1) rotate(0deg); }
+}
+@keyframes border-spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes orbit-spin {
+  from { transform: perspective(700px) rotateX(var(--rx, 72deg)) rotateZ(0deg); }
+  to   { transform: perspective(700px) rotateX(var(--rx, 72deg)) rotateZ(360deg); }
+}
+
+@layer components {
+  /* Business reference codes — always monospace */
+  .ref-code {
+    @apply font-mono text-xs text-zi-cyan tracking-wider;
+  }
+
+  /* Orbit card */
+  .zi-card {
+    @apply bg-orbit-navy border border-white/5 rounded-lg p-4;
+  }
+
+  /* Product badge */
+  .zi-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-display font-bold;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply bg-zi-gold hover:bg-zi-gold/90 text-orbit-midnight font-display font-bold
+           px-4 py-2 rounded-md transition-all duration-200 text-sm;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply bg-orbit-deep hover:bg-orbit-navy border border-white/10
+           text-zi-white font-display font-semibold px-4 py-2 rounded-md
+           transition-all duration-200 text-sm;
+  }
+
+  /* Orbit input */
+  .zi-input {
+    @apply bg-orbit-deep border border-white/10 rounded-md px-3 py-2
+           text-zi-white placeholder:text-zi-muted text-sm
+           focus:outline-none focus:ring-1 focus:ring-zi-blue focus:border-zi-blue
+           transition-all duration-200 w-full;
+  }
+
+  /* Auth form input */
+  .auth-input {
+    @apply bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5
+           text-zi-white placeholder:text-zi-muted/50 text-sm
+           focus:outline-none focus:ring-1 focus:ring-zi-cyan/40 focus:border-zi-cyan/40
+           transition-all duration-200 w-full;
+  }
+
+  /* Auth primary button */
+  .auth-btn-primary {
+    @apply bg-zi-blue hover:bg-zi-blue/90 text-white font-display font-semibold
+           px-4 py-2.5 rounded-xl transition-all duration-200 text-sm
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Sidebar item */
+  .sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-md text-zi-muted
+           hover:bg-orbit-navy hover:text-zi-white transition-all duration-200
+           cursor-pointer text-sm font-body;
+  }
+
+  .sidebar-item.active {
+    @apply bg-orbit-navy text-zi-white;
+  }
+}

@@ -1,0 +1,6 @@
+-- ============================================================
+-- RENAMED: This file was incorrectly named 006_zipulse.sql.
+-- The clinic/healthcare schema is now in 006_zicare.sql (zcr_* tables).
+-- The real ZiPulse (Business Relationship OS) is in 008_zipulse.sql.
+-- This file is intentionally empty.
+-- ============================================================

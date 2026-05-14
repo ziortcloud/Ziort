@@ -1,0 +1,9 @@
+﻿// ZiFleet — code generation helpers
+import { nextCode, nextYearCode } from '@/ziorbitcore/services/codes'
+
+// Alpha-grow codes (subscription-global counters)
+export const nextVehicleCode = () => nextCode('ZFV')   // ZFVA01, ZFVA02...
+export const nextDriverCode  = () => nextCode('ZFD')   // ZFDA01, ZFDA02...
+
+// Year-scoped trip code
+export const nextTripCode = () => nextYearCode('TR')   // TR26A01, TR26A02...

@@ -1,0 +1,1574 @@
+// ============================================================
+// Ziort — Prisma Schema
+// Single source of truth for the entire platform.
+// Database: PostgreSQL via Supabase
+// Auth:     Supabase Auth (auth.users) — referenced by auth_user_id
+// Storage:  Cloudflare R2 (URLs stored as text)
+//
+// Naming convention:
+//   Tables   → snake_case with zi_ / product prefix (e.g. zi_entities, zpn_loans)
+//   Models   → PascalCase (e.g. ZiEntity, ZpnLoan)
+//   Fields   → camelCase in Prisma, snake_case via @@map / @map
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum EntityType {
+  sole_proprietor
+  company
+  partnership
+  trust
+  individual
+}
+
+enum MemberRole {
+  owner
+  co_owner
+  partner
+  manager
+  staff
+  custom
+}
+
+enum ContactType {
+  CST
+  SUP
+  VND
+  AGT
+  PTR
+}
+
+enum SubscriptionPlan {
+  trial
+  solo
+  plus
+  pro
+}
+
+enum SubscriptionStatus {
+  trial
+  active
+  paused
+  grace
+  cancelled
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum TransactionType {
+  debit
+  credit
+  refund
+  adjustment
+}
+
+enum TopupStatus {
+  pending
+  success
+  failed
+  refunded
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  REVEAL
+  EXPORT
+  APPROVE
+  REJECT
+  CANCEL
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  ALERT
+}
+
+enum ScopeType {
+  PLATFORM
+  ENTITY
+  BRANCH
+  SUBSCRIPTION
+}
+
+// ZiPawn enums
+enum LoanStatus {
+  ACTIVE
+  CLOSED
+  CANCELLED
+  AUCTIONED
+  MIGRATED
+}
+
+enum LoanClosureReason {
+  REPAID
+  RENEWED
+  AUCTIONED
+  WRITTEN_OFF
+}
+
+enum TicketStatus {
+  OPEN
+  PARTIALLY_RELEASED
+  FULLY_RELEASED
+  CANCELLED
+}
+
+enum InterestBasis {
+  daily
+  monthly
+}
+
+// ZiFleet enums
+enum VehicleStatus {
+  AVAILABLE
+  ON_TRIP
+  MAINTENANCE
+  INACTIVE
+}
+
+enum TripStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ZiLoad enums
+enum LoadStatus {
+  OPEN
+  ASSIGNED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+// ZiDriver enums
+enum DriverStatus {
+  AVAILABLE
+  ON_DUTY
+  INACTIVE
+}
+
+// ZiCare / ZiPulse enums
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ZiChit enums
+enum ChitStatus {
+  ACTIVE
+  COMPLETED
+  DISSOLVED
+}
+
+// ZiNeed enums
+enum RequirementStatus {
+  OPEN
+  MATCHED
+  CLOSED
+  EXPIRED
+}
+
+enum DealStatus {
+  PROPOSED
+  NEGOTIATING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+}
+
+// ZiShop / ZiFood enums
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+// ZiLedger enums
+enum EntryType {
+  DEBIT
+  CREDIT
+}
+
+// ZiPost enums
+enum AdStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  EXPIRED
+}
+
+// ============================================================
+// CODE SEQUENCES — alpha-grow generator
+// fn_next_code(prefix) → 'ZPNA01', 'ZPNA02' … 'ZPNZ99' → 'ZPNAA01'
+// ============================================================
+
+model ZiCodeSequence {
+  id           String   @id @default(uuid()) @db.Uuid
+  codePrefix   String   @unique @map("code_prefix")
+  lastSequence String   @map("last_sequence")
+  totalIssued  BigInt   @default(0) @map("total_issued")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("zi_code_sequences")
+}
+
+// ============================================================
+// NATIONAL ID CONFIGURATION (country-level)
+// ============================================================
+
+model ZiNationalIdConfig {
+  countryCode      String  @id @map("country_code")
+  countryName      String  @map("country_name")
+  individualIdName String? @map("individual_id_name")
+  individualFormat String? @map("individual_format")
+  businessIdName   String? @map("business_id_name")
+  businessFormat   String? @map("business_format")
+  storeRaw         Boolean @default(false) @map("store_raw")
+  storeHash        Boolean @default(true) @map("store_hash")
+  displayLast      Int     @default(6) @map("display_last")
+  verifyApi        String? @map("verify_api")
+
+  @@map("zi_national_id_config")
+}
+
+// ============================================================
+// INDIVIDUALS — Universal person registry (ZU prefix → ZUA01)
+// One record per real human. Permanent. Never deleted.
+// auth_user_id links to Supabase auth.users
+// ============================================================
+
+model ZiIndividual {
+  id                  String    @id @default(uuid()) @db.Uuid
+  ziCode              String    @unique @map("zi_code")
+  displayName         String    @map("display_name")
+  countryCode         String    @default("IN") @map("country_code")
+  nationalIdType      String?   @map("national_id_type")
+  nationalIdHash      String?   @unique @map("national_id_hash")
+  nationalIdLast6     String?   @map("national_id_last6")
+  nationalIdVerified  Boolean   @default(false) @map("national_id_verified")
+  authUserId          String?   @unique @db.Uuid @map("auth_user_id")
+  avatarUrl           String?   @map("avatar_url")
+  preferredLang       String    @default("en") @map("preferred_lang")
+  isActive            Boolean   @default(true) @map("is_active")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  lastSeenAt          DateTime? @map("last_seen_at")
+
+  emails                ZiIndividualEmail[]
+  mobiles               ZiIndividualMobile[]
+  memberships           ZiMembership[]
+  bizContactsLinked     ZiBizContact[]
+  subscriptionsPrimary  ZiSubscription[]    @relation("SubPrimaryOwner")
+  subscriptionsBilling  ZiSubscription[]    @relation("SubBillingOwner")
+  topupRequests         ZiTopupRequest[]
+  billingLogsCreated    ZiBillingLog[]
+  auditLogsActor        ZiAuditLog[]
+  notifications         ZiNotification[]    @relation("NotifTarget")
+
+  @@index([authUserId])
+  @@map("zi_individuals")
+}
+
+model ZiIndividualEmail {
+  id              String    @id @default(uuid()) @db.Uuid
+  individualId    String    @db.Uuid @map("individual_id")
+  email           String
+  isCurrent       Boolean   @default(true) @map("is_current")
+  isVerified      Boolean   @default(false) @map("is_verified")
+  verifiedAt      DateTime? @map("verified_at")
+  becameCurrentAt DateTime  @default(now()) @map("became_current_at")
+  replacedAt      DateTime? @map("replaced_at")
+
+  individual ZiIndividual @relation(fields: [individualId], references: [id])
+
+  @@unique([individualId, email])
+  @@index([email])
+  @@index([individualId])
+  @@map("zi_individual_emails")
+}
+
+model ZiIndividualMobile {
+  id              String    @id @default(uuid()) @db.Uuid
+  individualId    String    @db.Uuid @map("individual_id")
+  mobileHash      String    @unique @map("mobile_hash")
+  mobileLast4     String    @map("mobile_last4")
+  countryDialCode String    @map("country_dial_code")
+  isCurrent       Boolean   @default(true) @map("is_current")
+  isVerified      Boolean   @default(false) @map("is_verified")
+  verifiedAt      DateTime? @map("verified_at")
+  becameCurrentAt DateTime  @default(now()) @map("became_current_at")
+  replacedAt      DateTime? @map("replaced_at")
+  cooldownUntil   DateTime? @map("cooldown_until")
+
+  individual ZiIndividual @relation(fields: [individualId], references: [id])
+
+  @@index([mobileHash])
+  @@index([individualId])
+  @@map("zi_individual_mobiles")
+}
+
+// ============================================================
+// ENTITIES — Business entity (ZE prefix → ZEA01)
+// ============================================================
+
+model ZiEntity {
+  id                  String     @id @default(uuid()) @db.Uuid
+  ziCode              String     @unique @map("zi_code")
+  legalName           String     @map("legal_name")
+  tradeName           String?    @map("trade_name")
+  entityType          EntityType @map("entity_type")
+  countryCode         String     @default("IN") @map("country_code")
+  businessIdType      String?    @map("business_id_type")
+  businessIdHash      String?    @map("business_id_hash")
+  businessIdLast6     String?    @map("business_id_last6")
+  businessIdVerified  Boolean    @default(false) @map("business_id_verified")
+  city                String?
+  state               String?
+  logoUrl             String?    @map("logo_url")
+  isActive            Boolean    @default(true) @map("is_active")
+  createdAt           DateTime   @default(now()) @map("created_at")
+
+  branches         ZiBranch[]
+  subscriptions    ZiSubscription[]
+  memberships      ZiMembership[]
+  bizContacts      ZiBizContact[]
+  wallet           ZiWallet?
+  billingLogs      ZiBillingLog[]
+  billingSnapshots ZiBillingSnapshot[]
+  topupRequests    ZiTopupRequest[]
+  auditLogs        ZiAuditLog[]
+  appConfigs       ZiAppConfig[]
+  notifications    ZiNotification[]
+  roles            ZiRole[]
+
+  @@map("zi_entities")
+}
+
+// ============================================================
+// BRANCHES — Physical location / operational unit (ZBR → ZBRA01)
+// ref_code = ZEA01ZBRA01 (globally unique)
+// ============================================================
+
+model ZiBranch {
+  id          String   @id @default(uuid()) @db.Uuid
+  ziCode      String   @map("zi_code")
+  entityId    String   @db.Uuid @map("entity_id")
+  refCode     String   @unique @map("ref_code")
+  name        String
+  address     String?
+  city        String?
+  state       String?
+  countryCode String   @default("IN") @map("country_code")
+  isPrimary   Boolean  @default(false) @map("is_primary")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  entity      ZiEntity       @relation(fields: [entityId], references: [id])
+  bizContacts ZiBizContact[]
+  auditLogs   ZiAuditLog[]
+
+  @@unique([entityId, ziCode])
+  @@index([entityId])
+  @@map("zi_branches")
+}
+
+// ============================================================
+// SUBSCRIPTIONS — Entity × Product (e.g. ZPN → ZPNA01)
+// ref_code = ZEA01ZPNA01 (globally unique)
+// ============================================================
+
+model ZiSubscription {
+  id             String             @id @default(uuid()) @db.Uuid
+  ziCode         String             @map("zi_code")
+  entityId       String             @db.Uuid @map("entity_id")
+  refCode        String             @unique @map("ref_code")
+  productCode    String             @map("product_code")
+  productName    String             @map("product_name")
+  planType       SubscriptionPlan   @default(trial) @map("plan_type")
+  status         SubscriptionStatus @default(trial)
+  trialStart     DateTime?          @db.Date @map("trial_start")
+  trialEnd       DateTime?          @db.Date @map("trial_end")
+  billingStart   DateTime?          @db.Date @map("billing_start")
+  isAnnual       Boolean            @default(false) @map("is_annual")
+  maxUsers       Int?               @map("max_users")
+  primaryOwnerId String?            @db.Uuid @map("primary_owner_id")
+  billingOwnerId String?            @db.Uuid @map("billing_owner_id")
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  entity       ZiEntity      @relation(fields: [entityId], references: [id])
+  primaryOwner ZiIndividual? @relation("SubPrimaryOwner", fields: [primaryOwnerId], references: [id])
+  billingOwner ZiIndividual? @relation("SubBillingOwner", fields: [billingOwnerId], references: [id])
+  bizContacts  ZiBizContact[]
+
+  // Product tables (one per product)
+  zpnSchemes     ZpnScheme[]
+  zpnLoans       ZpnLoan[]
+  zflVehicles    ZflVehicle[]
+  zflTrips       ZflTrip[]
+  zldLoads       ZldLoad[]
+  zdrvDrivers    ZdrvDriver[]
+  zdrvEngagements ZdrvEngagement[]
+  zpulseAppts    ZpulseAppointment[]
+  zndRequirements ZndRequirement[]
+  zndDeals       ZndDeal[]
+  zchtFunds      ZchtFund[]
+  zcarePatients  ZcarePatient[]
+  zcarePrescriptions ZcarePrescription[]
+  zfoodOrders    ZfoodOrder[]
+  zshpOrders     ZshpOrder[]
+  zinvInvoices   ZinvInvoice[]
+  zqtQuotes      ZqtQuote[]
+  zrptReceipts   ZrptReceipt[]
+  zldgEntries    ZldgEntry[]
+  zpostAds       ZpostAd[]
+  zscnDocuments  ZscnDocument[]
+  zylYields      ZylYield[]
+  zbldProjects   ZbldProject[]
+  zptnPartnerships ZptnPartnership[]
+  zcalcResults   ZcalcResult[]
+
+  @@unique([entityId, ziCode])
+  @@index([entityId])
+  @@index([productCode])
+  @@map("zi_subscriptions")
+}
+
+// ============================================================
+// MEMBERSHIPS — Individual ↔ Entity link
+// ref_code = ZEA01ZUA01 (entity + individual codes)
+// ============================================================
+
+model ZiMembership {
+  id             String     @id @default(uuid()) @db.Uuid
+  refCode        String     @unique @map("ref_code")
+  entityId       String     @db.Uuid @map("entity_id")
+  individualId   String     @db.Uuid @map("individual_id")
+  role           MemberRole
+  isPrimaryOwner Boolean    @default(false) @map("is_primary_owner")
+  isBillingOwner Boolean    @default(false) @map("is_billing_owner")
+  equityPercent  Decimal?   @db.Decimal(5, 2) @map("equity_percent")
+  permissions    Json?
+  branchAccess   Json?      @map("branch_access")
+  invitedBy      String?    @db.Uuid @map("invited_by")
+  isActive       Boolean    @default(true) @map("is_active")
+  joinedAt       DateTime?  @map("joined_at")
+  expiresAt      DateTime?  @map("expires_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+
+  entity     ZiEntity        @relation(fields: [entityId], references: [id])
+  individual ZiIndividual    @relation(fields: [individualId], references: [id])
+  memberRoles ZiMemberRole[]
+
+  @@unique([entityId, individualId])
+  @@index([entityId])
+  @@index([individualId])
+  @@map("zi_memberships")
+}
+
+// ============================================================
+// BIZ CONTACTS — Customers / Suppliers / Vendors / Agents / Partners
+// ref_code = ZEA01ZPNA01CSTA01
+// ============================================================
+
+model ZiBizContact {
+  id             String      @id @default(uuid()) @db.Uuid
+  ziCode         String      @map("zi_code")
+  refCode        String      @unique @map("ref_code")
+  entityId       String      @db.Uuid @map("entity_id")
+  subscriptionId String      @db.Uuid @map("subscription_id")
+  branchId       String?     @db.Uuid @map("branch_id")
+  individualId   String?     @db.Uuid @map("individual_id")
+  contactType    ContactType @map("contact_type")
+  displayName    String      @map("display_name")
+  mobileDisplay  String?     @map("mobile_display")
+  emailDisplay   String?     @map("email_display")
+  tags           Json?
+  isVerified     Boolean     @default(false) @map("is_verified")
+  isActive       Boolean     @default(true) @map("is_active")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  entity       ZiEntity       @relation(fields: [entityId], references: [id])
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+  branch       ZiBranch?      @relation(fields: [branchId], references: [id])
+  individual   ZiIndividual?  @relation(fields: [individualId], references: [id])
+
+  // Product contact references
+  zpnLoans  ZpnLoan[]
+
+  @@unique([entityId, subscriptionId, contactType, ziCode])
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@index([individualId])
+  @@map("zi_biz_contacts")
+}
+
+// ============================================================
+// BILLING — Wallet / Log / Snapshot / Topup
+// Balance stored in paise (₹1 = 100 paise) — no floats
+// ============================================================
+
+model ZiWallet {
+  id           String   @id @default(uuid()) @db.Uuid
+  entityId     String   @unique @db.Uuid @map("entity_id")
+  balancePaise BigInt   @default(0) @map("balance_paise")
+  currency     String   @default("INR")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  entity ZiEntity @relation(fields: [entityId], references: [id])
+
+  @@index([entityId])
+  @@map("zi_wallet")
+}
+
+model ZiBillingLog {
+  id                String          @id @default(uuid()) @db.Uuid
+  entityId          String          @db.Uuid @map("entity_id")
+  transactionType   TransactionType @map("transaction_type")
+  amountPaise       BigInt          @map("amount_paise")
+  description       String
+  refCode           String?         @map("ref_code")
+  balanceAfterPaise BigInt          @map("balance_after_paise")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  createdBy         String?         @db.Uuid @map("created_by")
+
+  entity    ZiEntity      @relation(fields: [entityId], references: [id])
+  createdByIndividual ZiIndividual? @relation(fields: [createdBy], references: [id])
+
+  @@index([entityId])
+  @@index([createdAt(sort: Desc)])
+  @@map("zi_billing_log")
+}
+
+model ZiBillingSnapshot {
+  id                    String   @id @default(uuid()) @db.Uuid
+  entityId              String   @db.Uuid @map("entity_id")
+  snapshotDate          DateTime @db.Date @map("snapshot_date")
+  productCount          Int      @default(0) @map("product_count")
+  activeUserCount       Int      @default(0) @map("active_user_count")
+  branchCount           Int      @default(0) @map("branch_count")
+  bundleDiscountPct     Decimal  @default(0) @db.Decimal(5, 2) @map("bundle_discount_pct")
+  baseCostPaise         BigInt   @default(0) @map("base_cost_paise")
+  discountPaise         BigInt   @default(0) @map("discount_paise")
+  dailyCostPaise        BigInt   @default(0) @map("daily_cost_paise")
+  notificationCostPaise BigInt   @default(0) @map("notification_cost_paise")
+  totalCostPaise        BigInt   @default(0) @map("total_cost_paise")
+  deducted              Boolean  @default(false)
+  deductedAt            DateTime? @map("deducted_at")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  entity ZiEntity @relation(fields: [entityId], references: [id])
+
+  @@unique([entityId, snapshotDate])
+  @@index([entityId])
+  @@index([snapshotDate(sort: Desc)])
+  @@map("zi_billing_snapshot")
+}
+
+model ZiTopupRequest {
+  id               String      @id @default(uuid()) @db.Uuid
+  entityId         String      @db.Uuid @map("entity_id")
+  individualId     String      @db.Uuid @map("individual_id")
+  amountPaise      BigInt      @map("amount_paise")
+  currency         String      @default("INR")
+  gateway          String      @default("manual")
+  gatewayOrderId   String?     @map("gateway_order_id")
+  gatewayPaymentId String?     @map("gateway_payment_id")
+  status           TopupStatus @default(pending)
+  creditedAt       DateTime?   @map("credited_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  entity     ZiEntity     @relation(fields: [entityId], references: [id])
+  individual ZiIndividual @relation(fields: [individualId], references: [id])
+
+  @@index([entityId])
+  @@map("zi_topup_requests")
+}
+
+// ============================================================
+// AUDIT LOGS — Immutable. Never update or delete.
+// ============================================================
+
+model ZiAuditLog {
+  id           String      @id @default(uuid()) @db.Uuid
+  entityId     String?     @db.Uuid @map("entity_id")
+  branchId     String?     @db.Uuid @map("branch_id")
+  actorId      String?     @db.Uuid @map("actor_id")
+  action       AuditAction
+  resourceType String      @map("resource_type")
+  resourceId   String?     @map("resource_id")
+  oldData      Json?       @map("old_data")
+  newData      Json?       @map("new_data")
+  metadata     Json?
+  ipAddress    String?     @map("ip_address")
+  userAgent    String?     @map("user_agent")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  entity ZiEntity?     @relation(fields: [entityId], references: [id])
+  branch ZiBranch?     @relation(fields: [branchId], references: [id])
+  actor  ZiIndividual? @relation(fields: [actorId], references: [id])
+
+  @@index([entityId, createdAt(sort: Desc)])
+  @@index([resourceType, resourceId])
+  @@index([actorId])
+  @@map("zi_audit_logs")
+}
+
+// ============================================================
+// APP CONFIGS — Feature flags & settings at any scope
+// Ported from Zihive. Scoped to PLATFORM / ENTITY / BRANCH / SUBSCRIPTION.
+// ============================================================
+
+model ZiAppConfig {
+  id        String    @id @default(uuid()) @db.Uuid
+  scopeType ScopeType @map("scope_type")
+  scopeId   String?   @db.Uuid @map("scope_id")
+  entityId  String?   @db.Uuid @map("entity_id")
+  key       String
+  value     Json
+  isPublic  Boolean   @default(false) @map("is_public")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  entity ZiEntity? @relation(fields: [entityId], references: [id])
+
+  @@unique([scopeType, scopeId, key])
+  @@index([scopeType, scopeId])
+  @@map("zi_app_configs")
+}
+
+// ============================================================
+// NOTIFICATIONS — In-app. Ported from Zihive.
+// target_user_id references zi_individuals.id (the logged-in staff member)
+// ============================================================
+
+model ZiNotification {
+  id           String           @id @default(uuid()) @db.Uuid
+  entityId     String?          @db.Uuid @map("entity_id")
+  targetUserId String           @db.Uuid @map("target_user_id")
+  type         NotificationType @default(INFO)
+  title        String
+  body         String
+  link         String?
+  metadata     Json?
+  readAt       DateTime?        @map("read_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  entity     ZiEntity?     @relation(fields: [entityId], references: [id])
+  targetUser ZiIndividual? @relation("NotifTarget", fields: [targetUserId], references: [id])
+
+  @@index([targetUserId, readAt])
+  @@index([entityId])
+  @@map("zi_notifications")
+}
+
+// ============================================================
+// RBAC — Roles / Permissions / Member Roles
+// Ported from Zihive. System roles (isSystem=true) seeded at startup.
+// ============================================================
+
+model ZiRole {
+  id          String   @id @default(uuid()) @db.Uuid
+  entityId    String?  @db.Uuid @map("entity_id")
+  name        String
+  description String?
+  isDefault   Boolean  @default(false) @map("is_default")
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  entity      ZiEntity?          @relation(fields: [entityId], references: [id])
+  permissions ZiRolePermission[]
+  memberRoles ZiMemberRole[]
+
+  @@unique([entityId, name])
+  @@index([entityId])
+  @@map("zi_roles")
+}
+
+model ZiPermission {
+  code        String  @id
+  description String?
+  productCode String? @map("product_code")
+  isCore      Boolean @default(true) @map("is_core")
+
+  rolePermissions ZiRolePermission[]
+
+  @@map("zi_permissions")
+}
+
+model ZiRolePermission {
+  roleId     String @db.Uuid @map("role_id")
+  permission String
+
+  role ZiRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  perm ZiPermission @relation(fields: [permission], references: [code], onDelete: Cascade)
+
+  @@id([roleId, permission])
+  @@map("zi_role_permissions")
+}
+
+model ZiMemberRole {
+  id           String   @id @default(uuid()) @db.Uuid
+  membershipId String   @db.Uuid @map("membership_id")
+  roleId       String   @db.Uuid @map("role_id")
+  branchId     String?  @db.Uuid @map("branch_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  membership ZiMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  role       ZiRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, roleId, branchId])
+  @@index([membershipId])
+  @@map("zi_member_roles")
+}
+
+// ============================================================
+// ██████████████████████████████████████████████████████████
+//   PRODUCT SCHEMAS
+// ██████████████████████████████████████████████████████████
+// ============================================================
+
+// ============================================================
+// ZIPAWN — Gold Pawn & Pledge Loans (ZPN → ZPNA01)
+// ============================================================
+
+model ZpnScheme {
+  id             String        @id @default(uuid()) @db.Uuid
+  entityId       String        @db.Uuid @map("entity_id")
+  subscriptionId String        @db.Uuid @map("subscription_id")
+  schemeCode     String        @map("scheme_code")
+  schemeName     String        @map("scheme_name")
+  description    String?
+  interestRatePm Decimal       @db.Decimal(5, 2) @map("interest_rate_pm")
+  interestBasis  InterestBasis @default(daily) @map("interest_basis")
+  ltvGold916     Decimal       @default(75.00) @db.Decimal(5, 2) @map("ltv_gold_916")
+  ltvGold999     Decimal       @default(80.00) @db.Decimal(5, 2) @map("ltv_gold_999")
+  ltvSilver      Decimal       @default(60.00) @db.Decimal(5, 2) @map("ltv_silver")
+  ltvOther       Decimal       @default(50.00) @db.Decimal(5, 2) @map("ltv_other")
+  minLoanPaise   BigInt        @default(100000) @map("min_loan_paise")
+  maxLoanPaise   BigInt        @default(100000000) @map("max_loan_paise")
+  minTenureDays  Int?          @map("min_tenure_days")
+  maxTenureDays  Int?          @map("max_tenure_days")
+  penaltyEnabled Boolean       @default(false) @map("penalty_enabled")
+  penaltyGraceDays Int         @default(0) @map("penalty_grace_days")
+  penaltyRate    Decimal       @default(0) @db.Decimal(5, 2) @map("penalty_rate")
+  penaltyBasis   String        @default("flat") @map("penalty_basis")
+  isActive       Boolean       @default(true) @map("is_active")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+  loans        ZpnLoan[]
+
+  @@unique([subscriptionId, schemeCode])
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("zpn_schemes")
+}
+
+model ZpnLoan {
+  id              String             @id @default(uuid()) @db.Uuid
+  loanCode        String             @unique @map("loan_code")
+  entityId        String             @db.Uuid @map("entity_id")
+  subscriptionId  String             @db.Uuid @map("subscription_id")
+  branchId        String?            @db.Uuid @map("branch_id")
+  schemeId        String             @db.Uuid @map("scheme_id")
+  contactId       String             @db.Uuid @map("contact_id")
+  principalPaise  BigInt             @map("principal_paise")
+  interestRatePm  Decimal            @db.Decimal(5, 2) @map("interest_rate_pm")
+  interestBasis   InterestBasis      @default(daily) @map("interest_basis")
+  disbursedAt     DateTime           @map("disbursed_at")
+  closureDate     DateTime?          @db.Date @map("closure_date")
+  closedAt        DateTime?          @map("closed_at")
+  status          LoanStatus         @default(ACTIVE)
+  closureReason   LoanClosureReason? @map("closure_reason")
+  isMigrated      Boolean            @default(false) @map("is_migrated")
+  migrationNotes  String?            @map("migration_notes")
+  createdBy       String?            @db.Uuid @map("created_by")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+  scheme       ZpnScheme      @relation(fields: [schemeId], references: [id])
+  contact      ZiBizContact   @relation(fields: [contactId], references: [id])
+  items        ZpnLoanItem[]
+  payments     ZpnPayment[]
+  tickets      ZpnTicket[]
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@index([contactId])
+  @@index([status])
+  @@map("zpn_loans")
+}
+
+model ZpnLoanItem {
+  id            String    @id @default(uuid()) @db.Uuid
+  loanId        String    @db.Uuid @map("loan_id")
+  itemCode      String    @map("item_code")
+  description   String
+  metalType     String?   @map("metal_type")
+  weightGrams   Decimal?  @db.Decimal(10, 3) @map("weight_grams")
+  purityPercent Decimal?  @db.Decimal(5, 2) @map("purity_percent")
+  valuePaise    BigInt?   @map("value_paise")
+  imageUrls     Json      @default("[]") @map("image_urls")
+  isReleased    Boolean   @default(false) @map("is_released")
+  releasedAt    DateTime? @map("released_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  loan    ZpnLoan     @relation(fields: [loanId], references: [id])
+  tickets ZpnTicket[] @relation("TicketItems")
+
+  @@index([loanId])
+  @@map("zpn_loan_items")
+}
+
+model ZpnTicket {
+  id             String       @id @default(uuid()) @db.Uuid
+  ticketCode     String       @unique @map("ticket_code")
+  loanId         String       @db.Uuid @map("loan_id")
+  subscriptionId String       @db.Uuid @map("subscription_id")
+  status         TicketStatus @default(OPEN)
+  notes          String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  loan     ZpnLoan       @relation(fields: [loanId], references: [id])
+  payments ZpnPayment[]
+  items    ZpnLoanItem[] @relation("TicketItems")
+
+  @@index([loanId])
+  @@map("zpn_tickets")
+}
+
+model ZpnPayment {
+  id              String   @id @default(uuid()) @db.Uuid
+  paymentCode     String   @unique @map("payment_code")
+  loanId          String   @db.Uuid @map("loan_id")
+  ticketId        String?  @db.Uuid @map("ticket_id")
+  subscriptionId  String   @db.Uuid @map("subscription_id")
+  principalPaise  BigInt   @default(0) @map("principal_paise")
+  interestPaise   BigInt   @default(0) @map("interest_paise")
+  penaltyPaise    BigInt   @default(0) @map("penalty_paise")
+  totalPaise      BigInt   @map("total_paise")
+  mode            String   @default("cash")
+  reference       String?
+  notes           String?
+  receiptUrl      String?  @map("receipt_url")
+  recordedBy      String?  @db.Uuid @map("recorded_by")
+  paidAt          DateTime @default(now()) @map("paid_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  loan   ZpnLoan    @relation(fields: [loanId], references: [id])
+  ticket ZpnTicket? @relation(fields: [ticketId], references: [id])
+
+  @@index([loanId])
+  @@map("zpn_payments")
+}
+
+// ============================================================
+// ZIFLEET — Fleet management (ZFLT → ZFLTA01)
+// ============================================================
+
+model ZflVehicle {
+  id             String        @id @default(uuid()) @db.Uuid
+  vehicleCode    String        @unique @map("vehicle_code")
+  entityId       String        @db.Uuid @map("entity_id")
+  subscriptionId String        @db.Uuid @map("subscription_id")
+  registrationNo String        @map("registration_no")
+  make           String?
+  model          String?
+  year           Int?
+  vehicleType    String?       @map("vehicle_type")
+  capacity       String?
+  fuelType       String?       @map("fuel_type")
+  status         VehicleStatus @default(AVAILABLE)
+  imageUrls      Json          @default("[]") @map("image_urls")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+  trips        ZflTrip[]
+  maintenance  ZflMaintenance[]
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("zfl_vehicles")
+}
+
+model ZflTrip {
+  id             String     @id @default(uuid()) @db.Uuid
+  tripCode       String     @unique @map("trip_code")
+  entityId       String     @db.Uuid @map("entity_id")
+  subscriptionId String     @db.Uuid @map("subscription_id")
+  vehicleId      String     @db.Uuid @map("vehicle_id")
+  driverName     String?    @map("driver_name")
+  fromLocation   String     @map("from_location")
+  toLocation     String     @map("to_location")
+  scheduledAt    DateTime   @map("scheduled_at")
+  startedAt      DateTime?  @map("started_at")
+  completedAt    DateTime?  @map("completed_at")
+  distanceKm     Decimal?   @db.Decimal(10, 2) @map("distance_km")
+  fuelCostPaise  BigInt?    @map("fuel_cost_paise")
+  status         TripStatus @default(SCHEDULED)
+  notes          String?
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+  vehicle      ZflVehicle     @relation(fields: [vehicleId], references: [id])
+
+  @@index([entityId])
+  @@index([vehicleId])
+  @@map("zfl_trips")
+}
+
+model ZflMaintenance {
+  id             String   @id @default(uuid()) @db.Uuid
+  entityId       String   @db.Uuid @map("entity_id")
+  vehicleId      String   @db.Uuid @map("vehicle_id")
+  maintenanceType String  @map("maintenance_type")
+  description    String?
+  costPaise      BigInt?  @map("cost_paise")
+  scheduledAt    DateTime @map("scheduled_at")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  vehicle ZflVehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId])
+  @@map("zfl_maintenance")
+}
+
+// ============================================================
+// ZILOAD — Logistics loads marketplace (ZLD → ZLDA01)
+// ============================================================
+
+model ZldLoad {
+  id             String     @id @default(uuid()) @db.Uuid
+  loadCode       String     @unique @map("load_code")
+  entityId       String     @db.Uuid @map("entity_id")
+  subscriptionId String     @db.Uuid @map("subscription_id")
+  fromCity       String     @map("from_city")
+  toCity         String     @map("to_city")
+  goodsType      String?    @map("goods_type")
+  weightKg       Decimal?   @db.Decimal(10, 2) @map("weight_kg")
+  volumeCbm      Decimal?   @db.Decimal(10, 2) @map("volume_cbm")
+  vehicleType    String?    @map("vehicle_type")
+  budgetPaise    BigInt?    @map("budget_paise")
+  pickupDate     DateTime   @db.Date @map("pickup_date")
+  status         LoadStatus @default(OPEN)
+  contactId      String?    @db.Uuid @map("contact_id")
+  notes          String?
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+  bookings     ZldBooking[]
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("zld_loads")
+}
+
+model ZldBooking {
+  id             String        @id @default(uuid()) @db.Uuid
+  bookingCode    String        @unique @map("booking_code")
+  loadId         String        @db.Uuid @map("load_id")
+  subscriptionId String        @db.Uuid @map("subscription_id")
+  truckerEntityId String?      @db.Uuid @map("trucker_entity_id")
+  agreedRatePaise BigInt?      @map("agreed_rate_paise")
+  status         BookingStatus @default(PENDING)
+  notes          String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  load ZldLoad @relation(fields: [loadId], references: [id])
+
+  @@index([loadId])
+  @@map("zld_bookings")
+}
+
+// ============================================================
+// ZIDRIVER — Driver management (ZDR → ZDRA01)
+// ============================================================
+
+model ZdrvDriver {
+  id             String       @id @default(uuid()) @db.Uuid
+  driverCode     String       @unique @map("driver_code")
+  entityId       String       @db.Uuid @map("entity_id")
+  subscriptionId String       @db.Uuid @map("subscription_id")
+  individualId   String?      @db.Uuid @map("individual_id")
+  displayName    String       @map("display_name")
+  licenseNo      String?      @map("license_no")
+  licenseExpiry  DateTime?    @db.Date @map("license_expiry")
+  vehicleTypes   Json         @default("[]") @map("vehicle_types")
+  status         DriverStatus @default(AVAILABLE)
+  rating         Decimal?     @db.Decimal(3, 2)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  subscription ZiSubscription  @relation(fields: [subscriptionId], references: [id])
+  engagements  ZdrvEngagement[]
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("zdrv_drivers")
+}
+
+model ZdrvEngagement {
+  id             String   @id @default(uuid()) @db.Uuid
+  engagementCode String   @unique @map("engagement_code")
+  driverId       String   @db.Uuid @map("driver_id")
+  subscriptionId String   @db.Uuid @map("subscription_id")
+  entityId       String   @db.Uuid @map("entity_id")
+  startDate      DateTime @db.Date @map("start_date")
+  endDate        DateTime? @db.Date @map("end_date")
+  ratePerDay     BigInt?  @map("rate_per_day")
+  notes          String?
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  driver       ZdrvDriver     @relation(fields: [driverId], references: [id])
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([driverId])
+  @@map("zdrv_engagements")
+}
+
+// ============================================================
+// ZIPULSE — Healthcare appointments (ZPLS → ZPLSA01)
+// ============================================================
+
+model ZpulseAppointment {
+  id             String            @id @default(uuid()) @db.Uuid
+  apptCode       String            @unique @map("appt_code")
+  entityId       String            @db.Uuid @map("entity_id")
+  subscriptionId String            @db.Uuid @map("subscription_id")
+  patientId      String?           @db.Uuid @map("patient_id")
+  patientName    String            @map("patient_name")
+  doctorName     String?           @map("doctor_name")
+  department     String?
+  scheduledAt    DateTime          @map("scheduled_at")
+  duration       Int               @default(30)
+  status         AppointmentStatus @default(SCHEDULED)
+  notes          String?
+  pulseScore     Int?              @map("pulse_score")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("zpulse_appointments")
+}
+
+// ============================================================
+// ZINEED — B2B marketplace / requirements (ZND → ZNDA01)
+// ============================================================
+
+model ZndRequirement {
+  id             String            @id @default(uuid()) @db.Uuid
+  reqCode        String            @unique @map("req_code")
+  entityId       String            @db.Uuid @map("entity_id")
+  subscriptionId String            @db.Uuid @map("subscription_id")
+  title          String
+  description    String?
+  category       String?
+  budgetPaise    BigInt?           @map("budget_paise")
+  deadline       DateTime?         @db.Date
+  status         RequirementStatus @default(OPEN)
+  attachments    Json              @default("[]")
+  tags           Json              @default("[]")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+  deals        ZndDeal[]
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("znd_requirements")
+}
+
+model ZndDeal {
+  id             String     @id @default(uuid()) @db.Uuid
+  dealCode       String     @unique @map("deal_code")
+  requirementId  String     @db.Uuid @map("requirement_id")
+  subscriptionId String     @db.Uuid @map("subscription_id")
+  supplierEntityId String?  @db.Uuid @map("supplier_entity_id")
+  proposedPaise  BigInt?    @map("proposed_paise")
+  status         DealStatus @default(PROPOSED)
+  notes          String?
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  requirement  ZndRequirement @relation(fields: [requirementId], references: [id])
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([requirementId])
+  @@map("znd_deals")
+}
+
+// ============================================================
+// ZICARE — Clinic / Healthcare (ZCR → ZCRA01)
+// ============================================================
+
+model ZcarePatient {
+  id             String   @id @default(uuid()) @db.Uuid
+  patientCode    String   @unique @map("patient_code")
+  entityId       String   @db.Uuid @map("entity_id")
+  subscriptionId String   @db.Uuid @map("subscription_id")
+  individualId   String?  @db.Uuid @map("individual_id")
+  displayName    String   @map("display_name")
+  dob            DateTime? @db.Date
+  gender         String?
+  bloodGroup     String?  @map("blood_group")
+  allergies      Json     @default("[]")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  subscription   ZiSubscription       @relation(fields: [subscriptionId], references: [id])
+  prescriptions  ZcarePrescription[]
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("zcare_patients")
+}
+
+model ZcarePrescription {
+  id             String   @id @default(uuid()) @db.Uuid
+  rxCode         String   @unique @map("rx_code")
+  patientId      String   @db.Uuid @map("patient_id")
+  subscriptionId String   @db.Uuid @map("subscription_id")
+  doctorName     String?  @map("doctor_name")
+  diagnosis      String?
+  medications    Json     @default("[]")
+  instructions   String?
+  prescribedAt   DateTime @default(now()) @map("prescribed_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  patient      ZcarePatient   @relation(fields: [patientId], references: [id])
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([patientId])
+  @@map("zcare_prescriptions")
+}
+
+// ============================================================
+// ZICHIT — Chit fund management (ZCHT → ZCHTA01)
+// ============================================================
+
+model ZchtFund {
+  id             String    @id @default(uuid()) @db.Uuid
+  fundCode       String    @unique @map("fund_code")
+  entityId       String    @db.Uuid @map("entity_id")
+  subscriptionId String    @db.Uuid @map("subscription_id")
+  fundName       String    @map("fund_name")
+  monthlyPaise   BigInt    @map("monthly_paise")
+  totalMembers   Int       @map("total_members")
+  tenureMonths   Int       @map("tenure_months")
+  startDate      DateTime  @db.Date @map("start_date")
+  status         ChitStatus @default(ACTIVE)
+  currentMonth   Int       @default(1) @map("current_month")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+  members      ZchtMember[]
+  auctions     ZchtAuction[]
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("zcht_funds")
+}
+
+model ZchtMember {
+  id         String   @id @default(uuid()) @db.Uuid
+  fundId     String   @db.Uuid @map("fund_id")
+  contactId  String?  @db.Uuid @map("contact_id")
+  slotNumber Int      @map("slot_number")
+  hasPrized  Boolean  @default(false) @map("has_prized")
+  prizedMonth Int?    @map("prized_month")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  fund ZchtFund @relation(fields: [fundId], references: [id])
+
+  @@unique([fundId, slotNumber])
+  @@index([fundId])
+  @@map("zcht_members")
+}
+
+model ZchtAuction {
+  id          String   @id @default(uuid()) @db.Uuid
+  fundId      String   @db.Uuid @map("fund_id")
+  month       Int
+  winnerSlot  Int?     @map("winner_slot")
+  prizeAmountPaise BigInt? @map("prize_amount_paise")
+  auctionDate DateTime @db.Date @map("auction_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  fund ZchtFund @relation(fields: [fundId], references: [id])
+
+  @@unique([fundId, month])
+  @@map("zcht_auctions")
+}
+
+// ============================================================
+// ZIFOOD — Restaurant / food ordering (ZFD → ZFDA01)
+// ============================================================
+
+model ZfoodOrder {
+  id             String      @id @default(uuid()) @db.Uuid
+  orderCode      String      @unique @map("order_code")
+  entityId       String      @db.Uuid @map("entity_id")
+  subscriptionId String      @db.Uuid @map("subscription_id")
+  tableNo        String?     @map("table_no")
+  customerName   String?     @map("customer_name")
+  items          Json        @default("[]")
+  subtotalPaise  BigInt      @map("subtotal_paise")
+  taxPaise       BigInt      @default(0) @map("tax_paise")
+  discountPaise  BigInt      @default(0) @map("discount_paise")
+  totalPaise     BigInt      @map("total_paise")
+  status         OrderStatus @default(PENDING)
+  paymentMode    String?     @map("payment_mode")
+  notes          String?
+  orderedAt      DateTime    @default(now()) @map("ordered_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("zfood_orders")
+}
+
+// ============================================================
+// ZISHOP — Retail POS (ZSHP → ZSHPA01)
+// ============================================================
+
+model ZshpOrder {
+  id             String      @id @default(uuid()) @db.Uuid
+  orderCode      String      @unique @map("order_code")
+  entityId       String      @db.Uuid @map("entity_id")
+  subscriptionId String      @db.Uuid @map("subscription_id")
+  branchId       String?     @db.Uuid @map("branch_id")
+  contactId      String?     @db.Uuid @map("contact_id")
+  items          Json        @default("[]")
+  subtotalPaise  BigInt      @map("subtotal_paise")
+  discountPaise  BigInt      @default(0) @map("discount_paise")
+  taxPaise       BigInt      @default(0) @map("tax_paise")
+  totalPaise     BigInt      @map("total_paise")
+  paymentMode    String      @default("cash") @map("payment_mode")
+  status         OrderStatus @default(PENDING)
+  notes          String?
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("zshp_orders")
+}
+
+// ============================================================
+// ZIINVOICE — Invoice management (ZNVC → ZNVCA01)
+// ============================================================
+
+model ZinvInvoice {
+  id             String   @id @default(uuid()) @db.Uuid
+  invoiceCode    String   @unique @map("invoice_code")
+  entityId       String   @db.Uuid @map("entity_id")
+  subscriptionId String   @db.Uuid @map("subscription_id")
+  contactId      String?  @db.Uuid @map("contact_id")
+  invoiceDate    DateTime @db.Date @map("invoice_date")
+  dueDate        DateTime? @db.Date @map("due_date")
+  lineItems      Json     @default("[]") @map("line_items")
+  subtotalPaise  BigInt   @map("subtotal_paise")
+  taxPaise       BigInt   @default(0) @map("tax_paise")
+  discountPaise  BigInt   @default(0) @map("discount_paise")
+  totalPaise     BigInt   @map("total_paise")
+  paidPaise      BigInt   @default(0) @map("paid_paise")
+  status         String   @default("draft")
+  notes          String?
+  pdfUrl         String?  @map("pdf_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("zinv_invoices")
+}
+
+// ============================================================
+// ZIQUOTE — Quotation management (ZQT → ZQTA01)
+// ============================================================
+
+model ZqtQuote {
+  id             String   @id @default(uuid()) @db.Uuid
+  quoteCode      String   @unique @map("quote_code")
+  entityId       String   @db.Uuid @map("entity_id")
+  subscriptionId String   @db.Uuid @map("subscription_id")
+  contactId      String?  @db.Uuid @map("contact_id")
+  quoteDate      DateTime @db.Date @map("quote_date")
+  validUntil     DateTime? @db.Date @map("valid_until")
+  lineItems      Json     @default("[]") @map("line_items")
+  totalPaise     BigInt   @map("total_paise")
+  status         String   @default("draft")
+  notes          String?
+  pdfUrl         String?  @map("pdf_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@map("zqt_quotes")
+}
+
+// ============================================================
+// ZIRECEIPT — Payment receipts (ZRCP → ZRCPA01)
+// ============================================================
+
+model ZrptReceipt {
+  id             String   @id @default(uuid()) @db.Uuid
+  receiptCode    String   @unique @map("receipt_code")
+  entityId       String   @db.Uuid @map("entity_id")
+  subscriptionId String   @db.Uuid @map("subscription_id")
+  contactId      String?  @db.Uuid @map("contact_id")
+  refCode        String?  @map("ref_code")
+  amountPaise    BigInt   @map("amount_paise")
+  paymentMode    String   @default("cash") @map("payment_mode")
+  reference      String?
+  pdfUrl         String?  @map("pdf_url")
+  paidAt         DateTime @default(now()) @map("paid_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@map("zrpt_receipts")
+}
+
+// ============================================================
+// ZILEDGER — Double-entry accounting (ZLDG → ZLDGA01)
+// ============================================================
+
+model ZldgEntry {
+  id             String    @id @default(uuid()) @db.Uuid
+  entryCode      String    @unique @map("entry_code")
+  entityId       String    @db.Uuid @map("entity_id")
+  subscriptionId String    @db.Uuid @map("subscription_id")
+  entryDate      DateTime  @db.Date @map("entry_date")
+  description    String
+  entryType      EntryType @map("entry_type")
+  accountCode    String    @map("account_code")
+  amountPaise    BigInt    @map("amount_paise")
+  refCode        String?   @map("ref_code")
+  createdBy      String?   @db.Uuid @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("zldg_entries")
+}
+
+// ============================================================
+// ZIPOST — Advertisement platform (ZPST → ZPSTA01)
+// ============================================================
+
+model ZpostAd {
+  id             String   @id @default(uuid()) @db.Uuid
+  adCode         String   @unique @map("ad_code")
+  entityId       String   @db.Uuid @map("entity_id")
+  subscriptionId String   @db.Uuid @map("subscription_id")
+  title          String
+  description    String?
+  mediaUrls      Json     @default("[]") @map("media_urls")
+  targetCategory String?  @map("target_category")
+  targetCity     String?  @map("target_city")
+  budgetPaise    BigInt?  @map("budget_paise")
+  startDate      DateTime @db.Date @map("start_date")
+  endDate        DateTime @db.Date @map("end_date")
+  status         AdStatus @default(DRAFT)
+  impressions    Int      @default(0)
+  clicks         Int      @default(0)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@map("zpost_ads")
+}
+
+// ============================================================
+// ZISCAN — Document scanning (ZSCN → ZSCNA01)
+// ============================================================
+
+model ZscnDocument {
+  id             String   @id @default(uuid()) @db.Uuid
+  docCode        String   @unique @map("doc_code")
+  entityId       String   @db.Uuid @map("entity_id")
+  subscriptionId String   @db.Uuid @map("subscription_id")
+  contactId      String?  @db.Uuid @map("contact_id")
+  documentType   String   @map("document_type")
+  title          String
+  fileUrl        String   @map("file_url")
+  fileSize       Int?     @map("file_size")
+  mimeType       String?  @map("mime_type")
+  ocrText        String?  @map("ocr_text")
+  tags           Json     @default("[]")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@index([subscriptionId])
+  @@map("zscn_documents")
+}
+
+// ============================================================
+// ZIYIELD — Agriculture produce tracking (ZYLD → ZYLDA01)
+// ============================================================
+
+model ZylYield {
+  id             String   @id @default(uuid()) @db.Uuid
+  yieldCode      String   @unique @map("yield_code")
+  entityId       String   @db.Uuid @map("entity_id")
+  subscriptionId String   @db.Uuid @map("subscription_id")
+  cropType       String   @map("crop_type")
+  fieldName      String?  @map("field_name")
+  areaAcres      Decimal? @db.Decimal(10, 2) @map("area_acres")
+  expectedKg     Decimal? @db.Decimal(10, 2) @map("expected_kg")
+  actualKg       Decimal? @db.Decimal(10, 2) @map("actual_kg")
+  harvestDate    DateTime? @db.Date @map("harvest_date")
+  marketRatePaise BigInt? @map("market_rate_paise")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@map("zyl_yields")
+}
+
+// ============================================================
+// ZIBUILD — Construction project management (ZBLD → ZBLDA01)
+// ============================================================
+
+model ZbldProject {
+  id             String   @id @default(uuid()) @db.Uuid
+  projectCode    String   @unique @map("project_code")
+  entityId       String   @db.Uuid @map("entity_id")
+  subscriptionId String   @db.Uuid @map("subscription_id")
+  projectName    String   @map("project_name")
+  clientName     String?  @map("client_name")
+  siteAddress    String?  @map("site_address")
+  contractValuePaise BigInt? @map("contract_value_paise")
+  startDate      DateTime? @db.Date @map("start_date")
+  endDate        DateTime? @db.Date @map("end_date")
+  status         String   @default("planning")
+  completionPct  Int      @default(0) @map("completion_pct")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@map("zbld_projects")
+}
+
+// ============================================================
+// ZIPARTNER — Partnership tracking (ZPRTN → ZPRTNA01)
+// ============================================================
+
+model ZptnPartnership {
+  id             String   @id @default(uuid()) @db.Uuid
+  partnerCode    String   @unique @map("partner_code")
+  entityId       String   @db.Uuid @map("entity_id")
+  subscriptionId String   @db.Uuid @map("subscription_id")
+  partnerEntityId String? @db.Uuid @map("partner_entity_id")
+  partnerName    String   @map("partner_name")
+  partnerType    String   @map("partner_type")
+  revenueSharePct Decimal? @db.Decimal(5, 2) @map("revenue_share_pct")
+  startDate      DateTime @db.Date @map("start_date")
+  endDate        DateTime? @db.Date @map("end_date")
+  status         String   @default("active")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@map("zptn_partnerships")
+}
+
+// ============================================================
+// ZICALC — Calculation results storage (ZCLC → ZCLCA01)
+// ============================================================
+
+model ZcalcResult {
+  id             String   @id @default(uuid()) @db.Uuid
+  calcCode       String   @unique @map("calc_code")
+  entityId       String   @db.Uuid @map("entity_id")
+  subscriptionId String   @db.Uuid @map("subscription_id")
+  calcType       String   @map("calc_type")
+  inputs         Json
+  results        Json
+  createdBy      String?  @db.Uuid @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  subscription ZiSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([entityId])
+  @@map("zcalc_results")
+}

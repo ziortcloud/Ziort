@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZiOrbit — India's Business OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1a1464;
+    --navy-deep: #0f0c3d;
+    --navy-mid: #241e8a;
+    --accent: #f5a623;
+    --accent2: #00d4ff;
+    --accent3: #7c3aed;
+    --white: #ffffff;
+    --soft: #f0f2ff;
+    --muted: #8890b0;
+    --card-bg: rgba(255,255,255,0.04);
+    --card-border: rgba(255,255,255,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy-deep);
+    color: var(--white);
+    overflow-x: hidden;
+  }
+
+  /* ── STARFIELD ── */
+  .stars {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: white;
+    animation: twinkle var(--d) ease-in-out infinite alternate;
+  }
+  @keyframes twinkle {
+    from { opacity: 0.1; transform: scale(1); }
+    to   { opacity: 0.8; transform: scale(1.4); }
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 48px;
+    background: rgba(15,12,61,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent3));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: white;
+    box-shadow: 0 0 20px rgba(0,212,255,0.4);
+  }
+
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: white;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text span { color: var(--accent2); }
+
+  .nav-badge {
+    font-size: 11px;
+    background: rgba(0,212,255,0.15);
+    border: 1px solid rgba(0,212,255,0.3);
+    color: var(--accent2);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    overflow: hidden;
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 700px;
+    height: 700px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,58,237,0.25) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .hero-glow2 {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,212,255,0.15) 0%, transparent 70%);
+    top: 30%; left: 60%;
+    pointer-events: none;
+  }
+
+  .orbit-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.04);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    animation: spin var(--sp) linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: translate(-50%,-50%) rotate(0deg); }
+    to   { transform: translate(-50%,-50%) rotate(360deg); }
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent2);
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    padding: 6px 16px;
+    border-radius: 30px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(42px, 7vw, 88px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  .hero h1 .highlight {
+    background: linear-gradient(135deg, var(--accent2), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero p {
+    font-size: clamp(16px, 2.2vw, 20px);
+    color: rgba(255,255,255,0.6);
+    max-width: 600px;
+    line-height: 1.7;
+    margin-bottom: 48px;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 48px;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+
+  .stat-pill:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(0,212,255,0.3);
+    transform: translateY(-2px);
+  }
+
+  .stat-pill .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    color: var(--accent2);
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent2), var(--accent3));
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+    box-shadow: 0 8px 32px rgba(0,212,255,0.3);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 48px rgba(0,212,255,0.4);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+
+  .btn-secondary:hover {
+    border-color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.05);
+    transform: translateY(-2px);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SECTION ── */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 80px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 48px;
+    line-height: 1.15;
+  }
+
+  /* ── PRODUCTS GRID ── */
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .product-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 28px 24px;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .product-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    opacity: 0;
+    transition: opacity 0.35s;
+    border-radius: 20px;
+  }
+
+  .product-card:hover::before { opacity: 0.06; }
+
+  .product-card:hover {
+    border-color: var(--c1);
+    transform: translateY(-6px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px var(--c1);
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .card-badges {
+    display: flex;
+    gap: 6px;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-live {
+    background: rgba(34,197,94,0.2);
+    color: #4ade80;
+    border: 1px solid rgba(34,197,94,0.3);
+  }
+
+  .badge-beta {
+    background: rgba(245,166,35,0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245,166,35,0.3);
+  }
+
+  .badge-new {
+    background: rgba(0,212,255,0.15);
+    color: var(--accent2);
+    border: 1px solid rgba(0,212,255,0.3);
+  }
+
+  .badge-popular {
+    background: rgba(236,72,153,0.15);
+    color: #f472b6;
+    border: 1px solid rgba(236,72,153,0.3);
+  }
+
+  .badge-paid {
+    background: rgba(124,58,237,0.2);
+    color: #a78bfa;
+    border: 1px solid rgba(124,58,237,0.3);
+  }
+
+  .badge-earn {
+    background: rgba(245,166,35,0.2);
+    color: var(--accent);
+    border: 1px solid rgba(245,166,35,0.4);
+  }
+
+  .card-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 16px;
+    line-height: 1.5;
+    position: relative;
+    z-index: 1;
+  }
+
+  .card-features {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .card-feature {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .card-feature::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--c1);
+    flex-shrink: 0;
+  }
+
+  .card-footer {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+  }
+
+  .explore-link {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--c1);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: gap 0.2s;
+  }
+
+  .product-card:hover .explore-link { gap: 8px; }
+
+  /* ── WHY SECTION ── */
+  .why-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .why-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 32px 28px;
+    transition: all 0.3s;
+  }
+
+  .why-card:hover {
+    border-color: rgba(0,212,255,0.3);
+    transform: translateY(-4px);
+    background: rgba(255,255,255,0.06);
+  }
+
+  .why-icon {
+    font-size: 32px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .why-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .why-desc {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.65;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--card-border);
+    padding: 40px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: gap;
+    gap: 24px;
+  }
+
+  .footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .footer-copy {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .footer-links a {
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: white; }
+
+  /* ── DIVIDER ── */
+  .full-width {
+    max-width: 100%;
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+
+  /* ── SCROLL REVEAL ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ── COMING SOON OVERLAY ── */
+  .coming-soon-bar {
+    background: linear-gradient(90deg, var(--navy-mid), var(--accent3), var(--navy-mid));
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+    padding: 10px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    position: relative;
+    z-index: 101;
+  }
+
+  @keyframes shimmer {
+    from { background-position: 0% 0%; }
+    to   { background-position: 200% 0%; }
+  }
+
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    footer { padding: 32px 20px; flex-direction: column; text-align: center; }
+    .full-width { padding-left: 20px; padding-right: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Stars -->
+<div class="stars" id="stars"></div>
+
+<!-- Announcement Bar -->
+<div class="coming-soon-bar">
+  🚀 &nbsp; ZiOrbit is launching soon — India's complete Business OS &nbsp;·&nbsp; Register your interest below
+</div>
+
+<!-- Nav -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="logo-icon">Zi</div>
+    <span class="logo-text">Zi<span>Orbit</span></span>
+  </a>
+  <span class="nav-badge">🇮🇳 Made in India</span>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="stars hero-glow"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+
+  <!-- Orbit rings -->
+  <div class="orbit-ring" style="width:500px;height:500px;--sp:40s;"></div>
+  <div class="orbit-ring" style="width:750px;height:750px;--sp:70s;"></div>
+  <div class="orbit-ring" style="width:1000px;height:1000px;--sp:100s;"></div>
+
+  <div class="hero-eyebrow">
+    🪐 One Platform · Every Business · Infinite Possibilities
+  </div>
+
+  <h1>
+    India's Business OS<br>
+    <span class="highlight">Built for Every SMB</span>
+  </h1>
+
+  <p>
+    One platform. Every tool your business needs — from pawn shops to fleets, clinics to farms. Start free. Grow unlimited.
+  </p>
+
+  <div class="hero-stats">
+    <div class="stat-pill"><span class="stat-num">17+</span> Products</div>
+    <div class="stat-pill"><span class="stat-num">Free</span> To Start</div>
+    <div class="stat-pill"><span class="stat-num">100%</span> 🇮🇳 Made in India</div>
+    <div class="stat-pill"><span class="stat-num">99.9%</span> Uptime</div>
+  </div>
+
+  <div class="hero-cta">
+    <a href="#products" class="btn-primary">Explore Products →</a>
+    <a href="#early-access" class="btn-secondary">Get Early Access</a>
+  </div>
+</div>
+
+<!-- Products -->
+<section id="products" class="full-width reveal">
+  <span class="section-label">Product Constellation</span>
+  <div class="section-title">Every Business. One Orbit.</div>
+
+  <div class="products-grid">
+
+    <!-- ZiPawn -->
+    <a href="#" class="product-card" style="--c1:#f59e0b;--c2:#d97706;">
+      <div class="card-top">
+        <div class="card-icon">⚖️</div>
+        <div class="card-badges">
+          <span class="badge badge-live">● LIVE</span>
+          <span class="badge badge-popular">★ Popular</span>
+        </div>
+      </div>
+      <div class="card-name">ZiPawn</div>
+      <div class="card-desc">Smart Pawn Shop Management</div>
+      <div class="card-features">
+        <div class="card-feature">Pawn Tickets & Gold Valuation</div>
+        <div class="card-feature">Customer & Loan Tracking</div>
+      </div>
+      <div class="card-footer">
+        <span class="explore-link">Explore →</span>
+      </div>
+    </a>
+
+    <!-- ZiShop -->
+    <a href="#" class="product-card" style="--c1:#10b981;--c2:#059669;">
+      <div class="card-top">
+        <div class="card-icon">🛒</div>
+        <div class="card-badges"><span class="badge badge-beta">BETA</span></div>
+      </div>
+      <div class="card-name">ZiShop</div>
+      <div class="card-desc">Complete Shop Management</div>
+      <div class="card-features">
+        <div class="card-feature">Smart POS Billing</div>
+        <div class="card-feature">Live Inventory</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiLedger -->
+    <a href="#" class="product-card" style="--c1:#6366f1;--c2:#4f46e5;">
+      <div class="card-top">
+        <div class="card-icon">📒</div>
+        <div class="card-badges"><span class="badge badge-beta">BETA</span></div>
+      </div>
+      <div class="card-name">ZiLedger</div>
+      <div class="card-desc">GST Billing & Accounting</div>
+      <div class="card-features">
+        <div class="card-feature">GST Invoices</div>
+        <div class="card-feature">Payment Tracking</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiCalc -->
+    <a href="#" class="product-card" style="--c1:#00d4ff;--c2:#0284c7;">
+      <div class="card-top">
+        <div class="card-icon">🧮</div>
+        <div class="card-badges"><span class="badge badge-beta">BETA</span></div>
+      </div>
+      <div class="card-name">ZiCalc</div>
+      <div class="card-desc">Financial Calculators Suite</div>
+      <div class="card-features">
+        <div class="card-feature">Interest Calculator</div>
+        <div class="card-feature">SIP Calculator</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiReceipt -->
+    <a href="#" class="product-card" style="--c1:#f43f5e;--c2:#e11d48;">
+      <div class="card-top">
+        <div class="card-icon">🧾</div>
+        <div class="card-badges"><span class="badge badge-beta">BETA</span></div>
+      </div>
+      <div class="card-name">ZiReceipt</div>
+      <div class="card-desc">Smart Receipt Generator</div>
+      <div class="card-features">
+        <div class="card-feature">Multiple Receipt Types</div>
+        <div class="card-feature">Tax Support</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiInvoice -->
+    <a href="#" class="product-card" style="--c1:#a78bfa;--c2:#7c3aed;">
+      <div class="card-top">
+        <div class="card-icon">📄</div>
+        <div class="card-badges">
+          <span class="badge badge-beta">BETA</span>
+          <span class="badge badge-paid">PAID</span>
+        </div>
+      </div>
+      <div class="card-name">ZiInvoice</div>
+      <div class="card-desc">Professional Invoice Generator</div>
+      <div class="card-features">
+        <div class="card-feature">GST Compliant</div>
+        <div class="card-feature">9 Invoice Types</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiQuote -->
+    <a href="#" class="product-card" style="--c1:#fb923c;--c2:#ea580c;">
+      <div class="card-top">
+        <div class="card-icon">💬</div>
+        <div class="card-badges"><span class="badge badge-beta">BETA</span></div>
+      </div>
+      <div class="card-name">ZiQuote</div>
+      <div class="card-desc">Smart Quotation Generator</div>
+      <div class="card-features">
+        <div class="card-feature">Quotation Types</div>
+        <div class="card-feature">Client Approval</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiScan -->
+    <a href="#" class="product-card" style="--c1:#22d3ee;--c2:#0891b2;">
+      <div class="card-top">
+        <div class="card-icon">📷</div>
+        <div class="card-badges"><span class="badge badge-beta">BETA</span></div>
+      </div>
+      <div class="card-name">ZiScan</div>
+      <div class="card-desc">Smart Document Scanner</div>
+      <div class="card-features">
+        <div class="card-feature">Smart OCR</div>
+        <div class="card-feature">Multi-Format Export</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiPost -->
+    <a href="#" class="product-card" style="--c1:#34d399;--c2:#059669;">
+      <div class="card-top">
+        <div class="card-icon">📢</div>
+        <div class="card-badges"><span class="badge badge-beta">BETA</span></div>
+      </div>
+      <div class="card-name">ZiPost</div>
+      <div class="card-desc">Free Classifieds & Buy/Sell Ads</div>
+      <div class="card-features">
+        <div class="card-feature">Free Listings</div>
+        <div class="card-feature">Browse Locally</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiFleet -->
+    <a href="#" class="product-card" style="--c1:#f472b6;--c2:#db2777;">
+      <div class="card-top">
+        <div class="card-icon">🚛</div>
+        <div class="card-badges"><span class="badge badge-beta">BETA</span></div>
+      </div>
+      <div class="card-name">ZiFleet</div>
+      <div class="card-desc">Fleet & Trip Management</div>
+      <div class="card-features">
+        <div class="card-feature">Live Tracking</div>
+        <div class="card-feature">Trip Management</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiLoad -->
+    <a href="#" class="product-card" style="--c1:#fbbf24;--c2:#d97706;">
+      <div class="card-top">
+        <div class="card-icon">📦</div>
+        <div class="card-badges"><span class="badge badge-beta">BETA</span></div>
+      </div>
+      <div class="card-name">ZiLoad</div>
+      <div class="card-desc">Load Marketplace for Transporters</div>
+      <div class="card-features">
+        <div class="card-feature">Load Board</div>
+        <div class="card-feature">Bid System</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiBuild -->
+    <a href="#" class="product-card" style="--c1:#a3e635;--c2:#65a30d;">
+      <div class="card-top">
+        <div class="card-icon">🏗️</div>
+        <div class="card-badges">
+          <span class="badge badge-new">NEW</span>
+          <span class="badge badge-beta">BETA</span>
+        </div>
+      </div>
+      <div class="card-name">ZiBuild</div>
+      <div class="card-desc">Construction Material Marketplace</div>
+      <div class="card-features">
+        <div class="card-feature">Live Material Prices</div>
+        <div class="card-feature">Verified Suppliers</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiFood -->
+    <a href="#" class="product-card" style="--c1:#fb7185;--c2:#f43f5e;">
+      <div class="card-top">
+        <div class="card-icon">🍽️</div>
+        <div class="card-badges"><span class="badge badge-beta">BETA</span></div>
+      </div>
+      <div class="card-name">ZiFood</div>
+      <div class="card-desc">Restaurant & Café Management</div>
+      <div class="card-features">
+        <div class="card-feature">Table Management</div>
+        <div class="card-feature">KOT Printing</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiCare -->
+    <a href="#" class="product-card" style="--c1:#67e8f9;--c2:#06b6d4;">
+      <div class="card-top">
+        <div class="card-icon">🏥</div>
+        <div class="card-badges"><span class="badge badge-beta">BETA</span></div>
+      </div>
+      <div class="card-name">ZiCare</div>
+      <div class="card-desc">Clinic & Pharmacy Management</div>
+      <div class="card-features">
+        <div class="card-feature">OPD Queue</div>
+        <div class="card-feature">Prescriptions</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiYield -->
+    <a href="#" class="product-card" style="--c1:#86efac;--c2:#16a34a;">
+      <div class="card-top">
+        <div class="card-icon">🌾</div>
+        <div class="card-badges"><span class="badge badge-beta">BETA</span></div>
+      </div>
+      <div class="card-name">ZiYield</div>
+      <div class="card-desc">Farm & Agriculture Management</div>
+      <div class="card-features">
+        <div class="card-feature">Farm Records</div>
+        <div class="card-feature">Crop Seasons</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiChit -->
+    <a href="#" class="product-card" style="--c1:#c084fc;--c2:#9333ea;">
+      <div class="card-top">
+        <div class="card-icon">🏦</div>
+        <div class="card-badges">
+          <span class="badge badge-new">NEW</span>
+          <span class="badge badge-beta">BETA</span>
+        </div>
+      </div>
+      <div class="card-name">ZiChit</div>
+      <div class="card-desc">Chit Fund, Loans & Savings</div>
+      <div class="card-features">
+        <div class="card-feature">Chit Groups</div>
+        <div class="card-feature">Pigmy Savings</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Explore →</span></div>
+    </a>
+
+    <!-- ZiPartner -->
+    <a href="#" class="product-card" style="--c1:#f5a623;--c2:#d97706;" id="early-access">
+      <div class="card-top">
+        <div class="card-icon">💰</div>
+        <div class="card-badges">
+          <span class="badge badge-earn">EARN</span>
+          <span class="badge badge-beta">BETA</span>
+        </div>
+      </div>
+      <div class="card-name">ZiPartner</div>
+      <div class="card-desc">Earn by Referring Businesses</div>
+      <div class="card-features">
+        <div class="card-feature">20% Commission</div>
+        <div class="card-feature">Monthly Payouts</div>
+      </div>
+      <div class="card-footer"><span class="explore-link">Join Now →</span></div>
+    </a>
+
+  </div>
+</section>
+
+<!-- Why ZiOrbit -->
+<section class="full-width reveal">
+  <span class="section-label">Why ZiOrbit</span>
+  <div class="section-title">Built Different. Built for India.</div>
+
+  <div class="why-grid">
+    <div class="why-card">
+      <span class="why-icon">☁️</span>
+      <div class="why-title">Cloud Powered</div>
+      <div class="why-desc">Access your data from any device, anywhere. Always in sync. No hardware needed.</div>
+    </div>
+    <div class="why-card">
+      <span class="why-icon">🔐</span>
+      <div class="why-title">Bank-grade Security</div>
+      <div class="why-desc">Row-level encryption. Only you see your business data. Zero compromise.</div>
+    </div>
+    <div class="why-card">
+      <span class="why-icon">🇮🇳</span>
+      <div class="why-title">Built for India</div>
+      <div class="why-desc">₹ format, GST compliance, Indian languages & local business needs. 100%.</div>
+    </div>
+    <div class="why-card">
+      <span class="why-icon">💰</span>
+      <div class="why-title">Start Free</div>
+      <div class="why-desc">Free forever plan + 90-day full trial. No credit card. No hidden charges.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <a href="#" class="footer-logo">
+    <div class="logo-icon">Zi</div>
+    <span class="logo-text" style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;">Zi<span style="color:var(--accent2);">Orbit</span></span>
+  </a>
+  <div class="footer-copy">© 2026 ZiOrbit. All rights reserved.</div>
+  <div class="footer-links">
+    <a href="#">About</a>
+    <a href="#">Products</a>
+    <a href="#">ZiPartner</a>
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Contact</a>
+  </div>
+</footer>
+
+<script>
+  // Stars
+  const starsEl = document.getElementById('stars');
+  for (let i = 0; i < 120; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 2.5 + 0.5;
+    s.style.cssText = `
+      width:${size}px; height:${size}px;
+      top:${Math.random()*100}%;
+      left:${Math.random()*100}%;
+      --d:${2 + Math.random()*4}s;
+      animation-delay:${Math.random()*4}s;
+    `;
+    starsEl.appendChild(s);
+  }
+
+  // Scroll reveal
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

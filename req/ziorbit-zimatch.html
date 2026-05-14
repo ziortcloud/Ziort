@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZiMatch — ZiOrbit Requirement Marketplace</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#06061a; --surface:#0c0c28; --card:#10102e;
+  --border:rgba(255,255,255,0.07);
+  --blue:#2d3bff; --cyan:#00d4ff; --gold:#f5a623;
+  --green:#00c875; --red:#ff4d6a; --purple:#9b6dff;
+  --orange:#ff7c3a; --white:#f0f0ff; --muted:#6060a0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--white);}
+
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;position:sticky;top:0;z-index:100;}
+.tab{padding:0.8rem 1rem;font-family:'Syne',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.2s;}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.page{display:none;}.page.active{display:block;}
+
+.hdr{background:linear-gradient(160deg,#0d1035,#06061a);padding:2rem 1.5rem 1.75rem;border-bottom:1px solid var(--border);position:relative;overflow:hidden;}
+.hdr::before{content:'';position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:400px;height:400px;background:radial-gradient(circle,rgba(45,59,255,0.14) 0%,transparent 70%);pointer-events:none;}
+.eyebrow{font-family:'Syne',sans-serif;font-size:0.58rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--cyan);margin-bottom:0.4rem;}
+.hdr h1{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;letter-spacing:-0.02em;background:linear-gradient(135deg,#fff 40%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hdr p{font-size:0.78rem;color:var(--muted);margin-top:0.35rem;line-height:1.5;}
+
+.sec{padding:1.5rem 1.25rem 0;}
+.sec-label{font-family:'Syne',sans-serif;font-size:0.58rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--cyan);margin-bottom:1rem;display:flex;align-items:center;gap:0.6rem;}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.concept{background:linear-gradient(135deg,rgba(45,59,255,0.1),rgba(0,212,255,0.06));border:1px solid rgba(0,212,255,0.15);border-radius:14px;padding:1.25rem;margin-bottom:1rem;}
+.concept h3{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--white);margin-bottom:0.5rem;}
+.concept p{font-size:0.76rem;line-height:1.7;color:rgba(240,240,255,0.75);}
+
+/* HERO */
+.hero-center{background:linear-gradient(135deg,#101862,#0d1035);border:2px solid rgba(0,212,255,0.25);border-radius:16px;padding:1.75rem 1.25rem;text-align:center;margin-bottom:1rem;position:relative;overflow:hidden;}
+.hero-center::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:250px;height:250px;background:radial-gradient(circle,rgba(0,212,255,0.1) 0%,transparent 70%);pointer-events:none;}
+.hero-name{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;z-index:1;}
+.hero-full{font-family:'Syne',sans-serif;font-size:0.62rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-top:0.3rem;position:relative;z-index:1;}
+.hero-tag{display:inline-block;margin-top:0.85rem;font-size:0.72rem;background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.3);color:var(--gold);padding:0.3rem 0.85rem;border-radius:20px;font-family:'Syne',sans-serif;font-weight:700;position:relative;z-index:1;}
+
+/* ROLE CARDS */
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.65rem;margin-bottom:1rem;}
+.role-card{border-radius:12px;padding:1rem;border:1px solid var(--border);}
+.role-icon{font-size:1.4rem;margin-bottom:0.5rem;}
+.role-title{font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:800;margin-bottom:0.3rem;}
+.role-desc{font-size:0.66rem;color:var(--muted);line-height:1.5;}
+
+/* LIFECYCLE */
+.lifecycle{display:flex;flex-direction:column;gap:0;}
+.lc-step{display:flex;gap:0.85rem;position:relative;}
+.lc-left{display:flex;flex-direction:column;align-items:center;width:36px;flex-shrink:0;}
+.lc-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.72rem;flex-shrink:0;border:2px solid;}
+.lc-line{flex:1;width:2px;min-height:28px;margin:3px 0;}
+.lc-content{padding-bottom:1.25rem;flex:1;}
+.lc-title{font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:800;color:var(--white);margin-bottom:0.3rem;}
+.lc-desc{font-size:0.71rem;color:rgba(240,240,255,0.7);line-height:1.6;}
+.lc-note{font-size:0.65rem;margin-top:0.4rem;padding:0.4rem 0.6rem;border-radius:6px;line-height:1.5;}
+
+/* CATEGORY CARDS */
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:1rem;}
+.cat-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:0.9rem;display:flex;flex-direction:column;gap:0.35rem;}
+.cat-icon{font-size:1.1rem;}
+.cat-name{font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:800;color:var(--white);}
+.cat-examples{font-size:0.62rem;color:var(--muted);line-height:1.5;}
+.cat-earn{font-size:0.6rem;font-family:'Syne',sans-serif;font-weight:700;padding:0.15rem 0.45rem;border-radius:4px;display:inline-block;margin-top:0.1rem;}
+
+/* STATUS PILLS */
+.status-row{display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.75rem;}
+.status-pill{font-size:0.62rem;font-family:'Syne',sans-serif;font-weight:700;padding:0.25rem 0.65rem;border-radius:20px;letter-spacing:0.05em;text-transform:uppercase;}
+
+/* ARCH */
+.arch{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:1.1rem;margin-bottom:0.75rem;font-family:'DM Mono',monospace;font-size:0.65rem;line-height:1.9;color:rgba(240,240,255,0.65);overflow-x:auto;white-space:pre;}
+.arch .c{color:var(--muted);}
+.arch .h{color:var(--cyan);}
+.arch .g{color:var(--green);}
+.arch .gold{color:var(--gold);}
+.arch .p{color:var(--purple);}
+.arch .o{color:var(--orange);}
+.arch .r{color:var(--red);}
+
+/* SCHEMA */
+.schema{background:var(--card);border-radius:12px;border:1px solid var(--border);margin-bottom:0.75rem;overflow:hidden;}
+.sh{padding:0.55rem 1rem;background:rgba(45,59,255,0.12);border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--cyan);font-weight:500;}
+.sb{padding:0.75rem 1rem;font-family:'DM Mono',monospace;font-size:0.63rem;line-height:1.9;color:rgba(240,240,255,0.62);}
+.sb .pk{color:var(--green);}
+.sb .fk{color:var(--orange);}
+.sb .ft{color:var(--gold);}
+.sb .fn2{color:#8090ff;}
+.sb .fm{color:var(--muted);}
+
+/* REVENUE */
+.rev-card{background:var(--card);border-radius:14px;border:1px solid var(--border);margin-bottom:0.75rem;overflow:hidden;}
+.rh{padding:0.75rem 1.1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.rh-name{font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:800;}
+.rh-amt{font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:800;color:var(--gold);}
+.rb{padding:0.85rem 1.1rem;font-size:0.72rem;line-height:1.6;color:rgba(240,240,255,0.72);}
+.rb strong{color:var(--white);}
+
+/* IMPL */
+.impl{background:var(--card);border-radius:14px;border:1px solid var(--border);margin-bottom:0.75rem;overflow:hidden;}
+.ih{padding:0.75rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.75rem;}
+.iphase{font-family:'Syne',sans-serif;font-size:0.58rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:0.2rem 0.5rem;border-radius:4px;}
+.ph1{background:rgba(245,166,35,0.18);color:var(--gold);}
+.ph2{background:rgba(45,59,255,0.2);color:#8090ff;}
+.ph3{background:rgba(155,109,255,0.18);color:var(--purple);}
+.ititle{font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;color:var(--white);}
+.ib{padding:0.85rem 1.1rem;}
+.ii{display:flex;gap:0.75rem;font-size:0.71rem;line-height:1.6;color:rgba(240,240,255,0.72);margin-bottom:0.4rem;align-items:flex-start;}
+.ii:last-child{margin-bottom:0;}
+.id{min-width:6px;height:6px;border-radius:50%;margin-top:0.45rem;flex-shrink:0;}
+
+/* FLOW EXAMPLE */
+.flow-box{background:var(--card);border-radius:14px;border:1px solid var(--border);margin-bottom:0.75rem;overflow:hidden;}
+.fb-head{padding:0.75rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.65rem;}
+.fb-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0;}
+.fb-title{font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:800;color:var(--white);}
+.fb-sub{font-size:0.62rem;color:var(--muted);margin-top:0.05rem;}
+.fb-body{padding:0.85rem 1.1rem;}
+.fstep{display:flex;gap:0.75rem;font-size:0.71rem;line-height:1.5;color:rgba(240,240,255,0.75);margin-bottom:0.55rem;align-items:flex-start;}
+.fstep:last-child{margin-bottom:0;}
+.fsn{font-family:'Syne',sans-serif;font-weight:800;font-size:0.62rem;min-width:18px;margin-top:0.1rem;}
+.fsa{text-align:center;color:var(--muted);font-size:0.65rem;margin-left:0.5rem;padding:0.05rem 0;}
+.earn-tag{display:inline-block;font-size:0.6rem;font-family:'Syne',sans-serif;font-weight:700;padding:0.15rem 0.45rem;border-radius:4px;background:rgba(0,200,117,0.15);color:var(--green);border:1px solid rgba(0,200,117,0.25);margin-left:0.3rem;}
+
+footer{padding:2rem 1.5rem;text-align:center;font-size:0.65rem;color:var(--muted);border-top:1px solid var(--border);margin-top:2rem;}
+.fb2{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--white);margin-bottom:0.25rem;}
+.fb2 span{color:var(--cyan);}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('vision')">Vision</div>
+  <div class="tab" onclick="show('lifecycle')">How It Works</div>
+  <div class="tab" onclick="show('categories')">Categories</div>
+  <div class="tab" onclick="show('flows')">Real Flows</div>
+  <div class="tab" onclick="show('schema')">Schema</div>
+  <div class="tab" onclick="show('revenue')">Revenue</div>
+  <div class="tab" onclick="show('build')">Build Plan</div>
+</div>
+
+
+<!-- ══════ VISION ══════ -->
+<div class="page active" id="page-vision">
+  <div class="hdr">
+    <div class="eyebrow">ZiOrbit — Requirement Marketplace</div>
+    <h1>ZiMatch</h1>
+    <p>Post any business requirement. The right supplier finds you. Work gets done. Everyone earns.</p>
+  </div>
+
+  <div class="sec">
+
+    <div class="hero-center">
+      <div class="hero-name">ZiMatch</div>
+      <div class="hero-full">Zonal Intelligent Matching — Requirement to Fulfillment</div>
+      <div class="hero-tag">Post · Match · Fulfill · Pay · Earn</div>
+    </div>
+
+    <div class="concept">
+      <h3>One marketplace. Every business need. Every supplier. All inside ZiOrbit.</h3>
+      <p>A retailer needs 50kg rice — posted on ZiMatch, 3 distributors respond, one is chosen, delivery arranged, payment settled. A clinic needs a locum doctor — posted on ZiMatch, 5 qualified doctors apply. A factory needs 2 trucks — ZiMatch notifies nearby ZiFleet owners. <strong style="color:var(--cyan)">Every transaction earns ZiOrbit a commission. Every supplier listing earns a rental fee. The marketplace runs itself.</strong></p>
+    </div>
+
+    <div class="sec-label">The 4 Players in ZiMatch</div>
+
+    <div class="role-grid">
+      <div class="role-card" style="background:rgba(0,212,255,0.06);border-color:rgba(0,212,255,0.2)">
+        <div class="role-icon">🙋</div>
+        <div class="role-title" style="color:var(--cyan)">Requester</div>
+        <div class="role-desc">Any business or individual posting a need. ZiOrbit user OR public guest. Free to post.</div>
+      </div>
+      <div class="role-card" style="background:rgba(0,200,117,0.06);border-color:rgba(0,200,117,0.2)">
+        <div class="role-icon">🏭</div>
+        <div class="role-title" style="color:var(--green)">Supplier</div>
+        <div class="role-desc">Registered provider who fulfills requirements. Verified = priority listing. Pays monthly rental.</div>
+      </div>
+      <div class="role-card" style="background:rgba(245,166,35,0.06);border-color:rgba(245,166,35,0.2)">
+        <div class="role-icon">🤝</div>
+        <div class="role-title" style="color:var(--gold)">ZiPartner Agent</div>
+        <div class="role-desc">Earns extra commission when they introduce a supplier or close a deal on ZiMatch.</div>
+      </div>
+      <div class="role-card" style="background:rgba(155,109,255,0.06);border-color:rgba(155,109,255,0.2)">
+        <div class="role-icon">⬡</div>
+        <div class="role-title" style="color:var(--purple)">ZiOrbit Platform</div>
+        <div class="role-desc">Matches requirements to suppliers. Takes commission on every completed transaction. Earns supplier rental fee.</div>
+      </div>
+    </div>
+
+    <div class="sec-label">How ZiMatch sits inside ZiOrbit</div>
+    <div class="arch"><span class="c">┌─────────────────────────────────────────────────────┐</span>
+<span class="c">│                  ZIORBIT PLATFORM                   │</span>
+<span class="c">└──────────────────────┬──────────────────────────────┘</span>
+                       │
+         <span class="c">┌─────────────┴─────────────┐</span>
+         │                           │
+<span class="h">┌────────▼────────┐      ┌──────▼──────────────┐</span>
+<span class="h">│   Zi- APPS      │      │     ZiMATCH          │</span>
+<span class="h">│ ZiPawn,ZiRetail │◄────►│  Requirement         │</span>
+<span class="h">│ ZiCare,ZiFleet  │      │  Marketplace         │</span>
+<span class="h">│ ZiLedger etc.   │      │                      │</span>
+<span class="h">└─────────────────┘      └──────┬───────────────┘</span>
+                                 │
+              <span class="c">┌──────────────────┼──────────────────┐</span>
+              │                  │                  │
+       <span class="g">┌──────▼──────┐  ┌────▼──────┐  ┌────▼──────┐</span>
+       <span class="g">│  REQUESTER  │  │ SUPPLIER  │  │  ZIPARTNER│</span>
+       <span class="g">│ ZiOrbit user│  │ Verified  │  │   Agent   │</span>
+       <span class="g">│ OR guest    │  │ + Unverif.│  │Commission │</span>
+       <span class="g">└─────────────┘  └───────────┘  └───────────┘</span>
+
+<span class="gold">ZiOrbit earns:</span>
+<span class="gold">  ① Commission % on every completed deal</span>
+<span class="gold">  ② Monthly rental from verified supplier listings</span>
+<span class="gold">  ③ Priority boost fee (supplier pays to appear first)</span></div>
+
+    <div class="concept" style="background:linear-gradient(135deg,rgba(245,166,35,0.1),rgba(255,124,58,0.06));border-color:rgba(245,166,35,0.2)">
+      <h3 style="color:var(--gold)">Why ZiMatch is your most powerful product</h3>
+      <p>Every Zi-app solves a vertical problem. ZiMatch solves a universal problem — <strong style="color:var(--white)">every business needs something from another business, every day.</strong> It works across all verticals simultaneously. A ZiRetail user, a ZiCare user, and a ZiFleet user all benefit from the same ZiMatch marketplace. One product, infinite use cases, compounding network value.</p>
+    </div>
+
+  </div>
+  <footer><div class="fb2">Zi<span>Match</span></div><div>The requirement marketplace at the heart of ZiOrbit</div></footer>
+</div>
+
+
+<!-- ══════ LIFECYCLE ══════ -->
+<div class="page" id="page-lifecycle">
+  <div class="hdr">
+    <div class="eyebrow">ZiMatch — Complete Journey</div>
+    <h1>From Requirement<br>to Payment</h1>
+    <p>Every step from posting a need to completing it and earning commission.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-label">The 8-Step Lifecycle</div>
+
+    <div class="lifecycle">
+
+      <div class="lc-step">
+        <div class="lc-left">
+          <div class="lc-num" style="border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,0.08)">01</div>
+          <div class="lc-line" style="background:linear-gradient(var(--cyan),var(--blue))"></div>
+        </div>
+        <div class="lc-content">
+          <div class="lc-title">Requirement Posted</div>
+          <div class="lc-desc">Requester (ZiOrbit user or public guest) fills a simple form: What do you need? Quantity? Location? Budget? Deadline? Takes 60 seconds. No account needed for guests — just phone number for OTP.</div>
+          <div class="lc-note" style="background:rgba(0,212,255,0.08);color:var(--cyan)">ZiOrbit users get auto-filled details from their app (ZiRetail stock level, ZiCare inventory etc.)</div>
+        </div>
+      </div>
+
+      <div class="lc-step">
+        <div class="lc-left">
+          <div class="lc-num" style="border-color:var(--blue);color:#8090ff;background:rgba(45,59,255,0.1)">02</div>
+          <div class="lc-line" style="background:linear-gradient(var(--blue),var(--purple))"></div>
+        </div>
+        <div class="lc-content">
+          <div class="lc-title">ZiMatch Categorizes & Routes</div>
+          <div class="lc-desc">Platform reads the requirement, auto-assigns category (supply/service/transport/labour/professional), determines relevant suppliers in the requester's city and neighbouring areas.</div>
+          <div class="lc-note" style="background:rgba(45,59,255,0.1);color:#8090ff">Verified suppliers in matching category get instant push notification + WhatsApp via ZiPost</div>
+        </div>
+      </div>
+
+      <div class="lc-step">
+        <div class="lc-left">
+          <div class="lc-num" style="border-color:var(--purple);color:var(--purple);background:rgba(155,109,255,0.1)">03</div>
+          <div class="lc-line" style="background:linear-gradient(var(--purple),var(--gold))"></div>
+        </div>
+        <div class="lc-content">
+          <div class="lc-title">Suppliers Submit Proposals</div>
+          <div class="lc-desc">Verified suppliers (priority listed, shown first) and unverified applicants both submit proposals. Proposal includes: price, delivery timeline, terms, supplier rating, past completion count.</div>
+          <div class="lc-note" style="background:rgba(245,166,35,0.08);color:var(--gold)">Unverified suppliers can apply but shown below verified ones — incentive to get verified and pay listing fee</div>
+        </div>
+      </div>
+
+      <div class="lc-step">
+        <div class="lc-left">
+          <div class="lc-num" style="border-color:var(--gold);color:var(--gold);background:rgba(245,166,35,0.1)">04</div>
+          <div class="lc-line" style="background:linear-gradient(var(--gold),var(--orange))"></div>
+        </div>
+        <div class="lc-content">
+          <div class="lc-title">Requester Reviews & Selects</div>
+          <div class="lc-desc">Requester sees all proposals ranked by: verified status, rating, price, proximity. Can message suppliers directly within ZiMatch. Selects the best proposal — one tap to confirm.</div>
+          <div class="lc-note" style="background:rgba(255,124,58,0.08);color:var(--orange)">ZiPartner agents can assist requesters in selecting — earn referral commission if they close the deal</div>
+        </div>
+      </div>
+
+      <div class="lc-step">
+        <div class="lc-left">
+          <div class="lc-num" style="border-color:var(--orange);color:var(--orange);background:rgba(255,124,58,0.1)">05</div>
+          <div class="lc-line" style="background:linear-gradient(var(--orange),var(--green))"></div>
+        </div>
+        <div class="lc-content">
+          <div class="lc-title">Deal Locked — Escrow Initiated</div>
+          <div class="lc-desc">Once selected, ZiPay holds payment in escrow. Supplier sees confirmed order. Requester's funds are secured. Neither party can back out without penalty. Work officially begins.</div>
+          <div class="lc-note" style="background:rgba(0,200,117,0.08);color:var(--green)">For large orders: 50% upfront escrow, 50% on delivery. Configurable per category.</div>
+        </div>
+      </div>
+
+      <div class="lc-step">
+        <div class="lc-left">
+          <div class="lc-num" style="border-color:var(--green);color:var(--green);background:rgba(0,200,117,0.1)">06</div>
+          <div class="lc-line" style="background:linear-gradient(var(--green),var(--green))"></div>
+        </div>
+        <div class="lc-content">
+          <div class="lc-title">Work / Delivery in Progress</div>
+          <div class="lc-desc">Supplier fulfills the requirement. If transport involved → ZiFleet/ZiPilot handles delivery with live tracking. Both parties get ZiPost updates at key milestones: started, in transit, arriving.</div>
+          <div class="lc-note" style="background:rgba(0,200,117,0.08);color:var(--green)">Status: In Progress. Requester can raise a dispute at any point. ZiOrbit mediates.</div>
+        </div>
+      </div>
+
+      <div class="lc-step">
+        <div class="lc-left">
+          <div class="lc-num" style="border-color:var(--green);color:var(--green);background:rgba(0,200,117,0.1)">07</div>
+          <div class="lc-line" style="background:linear-gradient(var(--green),var(--gold))"></div>
+        </div>
+        <div class="lc-content">
+          <div class="lc-title">Requester Confirms Completion</div>
+          <div class="lc-desc">Requester marks requirement as fulfilled (or auto-confirmed after 48hrs with no dispute). Both parties leave ratings. The requirement becomes a completed case study visible on supplier's profile.</div>
+          <div class="lc-note" style="background:rgba(0,200,117,0.08);color:var(--green)">Auto-confirm after 48 hrs protects supplier from being held hostage by slow requesters</div>
+        </div>
+      </div>
+
+      <div class="lc-step">
+        <div class="lc-left">
+          <div class="lc-num" style="border-color:var(--gold);color:var(--gold);background:rgba(245,166,35,0.12)">08</div>
+          <div class="lc-line" style="background:transparent"></div>
+        </div>
+        <div class="lc-content">
+          <div class="lc-title">Payment Released — Everyone Earns</div>
+          <div class="lc-desc">ZiPay releases escrow. Platform deducts commission automatically. Net amount credited to supplier's ZiPay wallet instantly. ZiPartner agent commission credited if applicable. ZiLedger records the transaction for both parties.</div>
+          <div class="lc-note" style="background:rgba(245,166,35,0.1);color:var(--gold)">
+            Supplier receives: deal amount − ZiOrbit commission (3–8% based on category)<br>
+            ZiOrbit receives: commission + supplier's monthly rental (pre-collected)<br>
+            Agent receives: 1–2% referral if they assisted
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <footer><div class="fb2">Zi<span>Match</span></div><div>8 steps · Automated · Every transaction earns</div></footer>
+</div>
+
+
+<!-- ══════ CATEGORIES ══════ -->
+<div class="page" id="page-categories">
+  <div class="hdr">
+    <div class="eyebrow">ZiMatch — What Can Be Posted</div>
+    <h1>Every Business<br>Requirement</h1>
+    <p>Six major categories. Infinite individual requirements within each.</p>
+  </div>
+
+  <div class="sec">
+
+    <div class="cat-grid">
+
+      <div class="cat-card" style="border-color:rgba(0,200,117,0.25)">
+        <div class="cat-icon">📦</div>
+        <div class="cat-name" style="color:var(--green)">Supply & Products</div>
+        <div class="cat-examples">Rice, oil, medicines, auto parts, packaging, raw materials, FMCG goods, electronics stock</div>
+        <div class="cat-earn" style="background:rgba(0,200,117,0.12);color:var(--green)">Commission: 3–5%</div>
+      </div>
+
+      <div class="cat-card" style="border-color:rgba(0,212,255,0.25)">
+        <div class="cat-icon">🚚</div>
+        <div class="cat-name" style="color:var(--cyan)">Transport & Delivery</div>
+        <div class="cat-examples">Freight, last-mile delivery, intercity transport, cold chain, courier, bulk load movement</div>
+        <div class="cat-earn" style="background:rgba(0,212,255,0.12);color:var(--cyan)">Commission: 5–8%</div>
+      </div>
+
+      <div class="cat-card" style="border-color:rgba(245,166,35,0.25)">
+        <div class="cat-icon">🔧</div>
+        <div class="cat-name" style="color:var(--gold)">Services & Repairs</div>
+        <div class="cat-examples">AC repair, equipment servicing, electrical work, plumbing, IT support, machine maintenance</div>
+        <div class="cat-earn" style="background:rgba(245,166,35,0.12);color:var(--gold)">Commission: 8–12%</div>
+      </div>
+
+      <div class="cat-card" style="border-color:rgba(155,109,255,0.25)">
+        <div class="cat-icon">👷</div>
+        <div class="cat-name" style="color:var(--purple)">Labour & Gig Work</div>
+        <div class="cat-examples">Loading/unloading staff, warehouse helpers, part-time drivers, security guards, event workers</div>
+        <div class="cat-earn" style="background:rgba(155,109,255,0.12);color:var(--purple)">Commission: 8–10%</div>
+      </div>
+
+      <div class="cat-card" style="border-color:rgba(255,124,58,0.25)">
+        <div class="cat-icon">🩺</div>
+        <div class="cat-name" style="color:var(--orange)">Professional Services</div>
+        <div class="cat-examples">CA/accountant, legal, doctor (locum), pharmacist, IT consultant, architect, surveyor</div>
+        <div class="cat-earn" style="background:rgba(255,124,58,0.12);color:var(--orange)">Commission: 5–10%</div>
+      </div>
+
+      <div class="cat-card" style="border-color:rgba(255,77,106,0.25)">
+        <div class="cat-icon">🏗️</div>
+        <div class="cat-name" style="color:var(--red)">Equipment & Rental</div>
+        <div class="cat-examples">Generator hire, forklift rental, cold storage, warehouse space, scaffolding, vehicle lease</div>
+        <div class="cat-earn" style="background:rgba(255,77,106,0.12);color:var(--red)">Commission: 5–8% + rental</div>
+      </div>
+
+    </div>
+
+    <div class="sec-label">Supplier Tiers & Listing Fees</div>
+
+    <div style="background:var(--card);border-radius:14px;border:1px solid var(--border);overflow:hidden;margin-bottom:1rem">
+      <table style="width:100%;border-collapse:collapse;font-size:0.7rem">
+        <thead>
+          <tr style="background:rgba(45,59,255,0.12)">
+            <th style="padding:0.6rem 0.85rem;text-align:left;font-family:'Syne',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Tier</th>
+            <th style="padding:0.6rem 0.85rem;text-align:left;font-family:'Syne',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Monthly Fee</th>
+            <th style="padding:0.6rem 0.85rem;text-align:left;font-family:'Syne',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Benefits</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+            <td style="padding:0.65rem 0.85rem;color:var(--muted)">Guest Supplier</td>
+            <td style="padding:0.65rem 0.85rem;color:var(--muted)">Free</td>
+            <td style="padding:0.65rem 0.85rem;color:var(--muted);font-size:0.65rem">Can apply. Shown last. No profile. Higher commission taken.</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+            <td style="padding:0.65rem 0.85rem;color:var(--white);font-weight:500">Basic Listed</td>
+            <td style="padding:0.65rem 0.85rem;color:var(--gold);font-family:'Syne',sans-serif;font-weight:700">₹299/mo</td>
+            <td style="padding:0.65rem 0.85rem;color:rgba(240,240,255,0.7);font-size:0.65rem">Verified badge. Profile page. Shown above guests. Notifications for matching requirements.</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+            <td style="padding:0.65rem 0.85rem;color:var(--cyan);font-weight:500">Pro Supplier</td>
+            <td style="padding:0.65rem 0.85rem;color:var(--gold);font-family:'Syne',sans-serif;font-weight:700">₹799/mo</td>
+            <td style="padding:0.65rem 0.85rem;color:rgba(240,240,255,0.7);font-size:0.65rem">Priority ranking. Featured in category. ZiPartner agent introductions. Reduced commission rate.</td>
+          </tr>
+          <tr>
+            <td style="padding:0.65rem 0.85rem;color:var(--gold);font-weight:500">⭐ Featured</td>
+            <td style="padding:0.65rem 0.85rem;color:var(--gold);font-family:'Syne',sans-serif;font-weight:700">₹1,999/mo</td>
+            <td style="padding:0.65rem 0.85rem;color:rgba(240,240,255,0.7);font-size:0.65rem">Top of every relevant requirement. Homepage featured. Dedicated ZiPartner agent assigned. Lowest commission.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+  <footer><div class="fb2">Zi<span>Match</span></div><div>6 categories · 4 supplier tiers · All earning ZiOrbit revenue</div></footer>
+</div>
+
+
+<!-- ══════ FLOWS ══════ -->
+<div class="page" id="page-flows">
+  <div class="hdr">
+    <div class="eyebrow">ZiMatch — Real Scenarios</div>
+    <h1>How It Works<br>In Real Life</h1>
+    <p>Five concrete flows showing exactly how ZiMatch earns money.</p>
+  </div>
+
+  <div class="sec">
+
+    <div class="flow-box">
+      <div class="fb-head">
+        <div class="fb-icon" style="background:rgba(0,200,117,0.1);color:var(--green)">🏪</div>
+        <div><div class="fb-title">Kirana owner needs rice stock</div><div class="fb-sub">Supply requirement · ZiRetail user</div></div>
+      </div>
+      <div class="fb-body">
+        <div class="fstep"><div class="fsn" style="color:var(--cyan)">01</div><div>ZiRetail alerts: Basmati rice stock below threshold → auto-creates ZiMatch requirement: "50kg Basmati, Hyderabad, needed by Friday, budget ₹3,500"</div></div>
+        <div class="fsa">↓</div>
+        <div class="fstep"><div class="fsn" style="color:var(--cyan)">02</div><div>4 verified distributors in Hyderabad get WhatsApp notification via ZiPost. 2 submit proposals within 1 hour.</div></div>
+        <div class="fsa">↓</div>
+        <div class="fstep"><div class="fsn" style="color:var(--cyan)">03</div><div>Kirana owner picks Distributor B (₹3,200, same-day delivery). Confirms in one tap. ZiPay holds ₹3,200.</div></div>
+        <div class="fsa">↓</div>
+        <div class="fstep"><div class="fsn" style="color:var(--cyan)">04</div><div>Delivery done. Owner confirms. ZiPay releases ₹3,040 to distributor. <span class="earn-tag">ZiOrbit earns ₹160 (5%)</span></div></div>
+        <div class="fstep"><div class="fsn" style="color:var(--cyan)">05</div><div>ZiLedger auto-records the ₹3,200 purchase expense for the kirana owner. Zero manual entry.</div></div>
+      </div>
+    </div>
+
+    <div class="flow-box">
+      <div class="fb-head">
+        <div class="fb-icon" style="background:rgba(0,212,255,0.1);color:var(--cyan)">🚚</div>
+        <div><div class="fb-title">Manufacturer needs 3 trucks urgently</div><div class="fb-sub">Transport requirement · Public guest post</div></div>
+      </div>
+      <div class="fb-body">
+        <div class="fstep"><div class="fsn" style="color:var(--gold)">01</div><div>Manufacturer (not a ZiOrbit user) visits ziorbit.com/match → enters phone OTP → posts: "3 x 10T trucks, Chennai to Mumbai, Monday, ₹45,000 each"</div></div>
+        <div class="fsa">↓</div>
+        <div class="fstep"><div class="fsn" style="color:var(--gold)">02</div><div>ZiMatch notifies all Pro + Featured ZiFleet suppliers in Chennai. 6 respond within 30 minutes.</div></div>
+        <div class="fsa">↓</div>
+        <div class="fstep"><div class="fsn" style="color:var(--gold)">03</div><div>Manufacturer selects 3 different fleet owners. ₹1,35,000 total in escrow via ZiPay.</div></div>
+        <div class="fsa">↓</div>
+        <div class="fstep"><div class="fsn" style="color:var(--gold)">04</div><div>ZiFleet owners assign ZiPilot drivers. Live tracking shared with manufacturer.</div></div>
+        <div class="fsa">↓</div>
+        <div class="fstep"><div class="fsn" style="color:var(--gold)">05</div><div>Delivered. <span class="earn-tag">ZiOrbit earns ₹8,100 (6% of ₹1,35,000)</span> The guest manufacturer is now shown ZiOrbit products — potential new customer.</div></div>
+      </div>
+    </div>
+
+    <div class="flow-box">
+      <div class="fb-head">
+        <div class="fb-icon" style="background:rgba(155,109,255,0.1);color:var(--purple)">🩺</div>
+        <div><div class="fb-title">Clinic needs locum doctor for 3 days</div><div class="fb-sub">Professional service · ZiCare user</div></div>
+      </div>
+      <div class="fb-body">
+        <div class="fstep"><div class="fsn" style="color:var(--purple)">01</div><div>Clinic on ZiCare posts requirement: "Need MBBS doctor, General Medicine, 3 days, 9am–5pm, Hyderabad, ₹5,000/day"</div></div>
+        <div class="fsa">↓</div>
+        <div class="fstep"><div class="fsn" style="color:var(--purple)">02</div><div>5 verified doctors (ZiPilot professional tier) apply with their registration number, specialization, and ratings.</div></div>
+        <div class="fsa">↓</div>
+        <div class="fstep"><div class="fsn" style="color:var(--purple)">03</div><div>Clinic selects Dr. Priya. ₹15,000 in escrow. Dr. Priya's ZiCare access provisioned for 3 days only.</div></div>
+        <div class="fsa">↓</div>
+        <div class="fstep"><div class="fsn" style="color:var(--purple)">04</div><div>3 days complete. <span class="earn-tag">ZiOrbit earns ₹1,200 (8%)</span> Dr. Priya receives ₹13,800 in ZiPay wallet.</div></div>
+      </div>
+    </div>
+
+    <div class="flow-box">
+      <div class="fb-head">
+        <div class="fb-icon" style="background:rgba(245,166,35,0.1);color:var(--gold)">🤝</div>
+        <div><div class="fb-title">ZiPartner Agent closes a deal</div><div class="fb-sub">Agent-assisted requirement · Extra commission</div></div>
+      </div>
+      <div class="fb-body">
+        <div class="fstep"><div class="fsn" style="color:var(--gold)">01</div><div>Agent Suresh sees a ₹2,00,000 cold storage requirement posted on ZiMatch that's been open 2 days with no takers</div></div>
+        <div class="fsa">↓</div>
+        <div class="fstep"><div class="fsn" style="color:var(--gold)">02</div><div>Suresh knows a cold storage operator not yet on ZiMatch → introduces them → they register as Basic Listed supplier → submit proposal</div></div>
+        <div class="fsa">↓</div>
+        <div class="fstep"><div class="fsn" style="color:var(--gold)">03</div><div>Deal closed at ₹1,80,000. <span class="earn-tag">ZiOrbit earns ₹10,800 (6%)</span> <span class="earn-tag" style="background:rgba(245,166,35,0.15);color:var(--gold);border-color:rgba(245,166,35,0.3)">Suresh earns ₹3,600 (2% referral)</span></div></div>
+        <div class="fstep"><div class="fsn" style="color:var(--gold)">04</div><div>The new supplier now pays ₹299/month listing fee. Suresh earns ongoing commission on their future deals too.</div></div>
+      </div>
+    </div>
+
+  </div>
+  <footer><div class="fb2">Zi<span>Match</span></div><div>Every flow earns · Zero manual effort · Scales automatically</div></footer>
+</div>
+
+
+<!-- ══════ SCHEMA ══════ -->
+<div class="page" id="page-schema">
+  <div class="hdr">
+    <div class="eyebrow">ZiMatch — Data Design</div>
+    <h1>Core Database<br>Schema</h1>
+    <p>Five tables that power the entire ZiMatch marketplace. Paste into Supabase + CLAUDE.md.</p>
+  </div>
+
+  <div class="sec">
+
+    <div class="schema">
+      <div class="sh">zi_match_requirements — every posted requirement</div>
+      <div class="sb">
+<span class="pk">id</span>               uuid PRIMARY KEY
+<span class="fk">posted_by</span>        uuid → auth.users.id   <span class="fm">-- null if guest</span>
+<span class="fk">tenant_id</span>        uuid → tenants.id      <span class="fm">-- null if guest</span>
+<span class="fn2">source_app</span>       <span class="ft">text</span>           <span class="fm">-- 'ziretail'|'zicare'|'manual'|'guest'</span>
+<span class="fn2">category</span>         <span class="ft">enum</span>           <span class="fm">-- supply|transport|service|labour|professional|rental</span>
+<span class="fn2">title</span>            <span class="ft">text</span>           <span class="fm">-- "50kg Basmati Rice"</span>
+<span class="fn2">description</span>      <span class="ft">text</span>
+<span class="fn2">quantity</span>         <span class="ft">numeric</span>
+<span class="fn2">unit</span>             <span class="ft">text</span>           <span class="fm">-- 'kg'|'tonnes'|'days'|'units'|'trips'</span>
+<span class="fn2">city</span>             <span class="ft">text</span>
+<span class="fn2">state</span>            <span class="ft">text</span>
+<span class="fn2">budget_min</span>       <span class="ft">numeric</span>
+<span class="fn2">budget_max</span>       <span class="ft">numeric</span>
+<span class="fn2">deadline</span>         <span class="ft">timestamptz</span>
+<span class="fn2">status</span>           <span class="ft">enum</span>           <span class="fm">-- open|proposals_received|accepted|in_progress|completed|disputed|cancelled</span>
+<span class="fn2">visibility</span>       <span class="ft">enum</span>           <span class="fm">-- public|verified_only</span>
+<span class="fn2">auto_generated</span>   <span class="ft">boolean</span>        <span class="fm">-- true = created by inter-app event</span>
+<span class="fn2">guest_phone</span>      <span class="ft">text</span>           <span class="fm">-- for guest requesters</span>
+<span class="fn2">created_at</span>       <span class="ft">timestamptz</span>
+      </div>
+    </div>
+
+    <div class="schema">
+      <div class="sh">zi_match_suppliers — registered supplier profiles</div>
+      <div class="sb">
+<span class="pk">id</span>               uuid PRIMARY KEY
+<span class="fk">user_id</span>          uuid → auth.users.id
+<span class="fk">tenant_id</span>        uuid → tenants.id     <span class="fm">-- if they use a Zi-app</span>
+<span class="fn2">business_name</span>    <span class="ft">text</span>
+<span class="fn2">categories</span>       <span class="ft">text[]</span>         <span class="fm">-- ['supply','transport']</span>
+<span class="fn2">service_cities</span>   <span class="ft">text[]</span>         <span class="fm">-- cities they can serve</span>
+<span class="fn2">tier</span>             <span class="ft">enum</span>           <span class="fm">-- guest|basic|pro|featured</span>
+<span class="fn2">verified</span>         <span class="ft">boolean</span>
+<span class="fn2">rating</span>           <span class="ft">numeric</span>        <span class="fm">-- avg of all ratings 0–5</span>
+<span class="fn2">total_deals</span>      <span class="ft">integer</span>
+<span class="fn2">total_value</span>      <span class="ft">numeric</span>        <span class="fm">-- lifetime deal value</span>
+<span class="fn2">commission_rate</span>  <span class="ft">numeric</span>        <span class="fm">-- % ZiOrbit takes (varies by tier)</span>
+<span class="fn2">listing_fee</span>      <span class="ft">numeric</span>        <span class="fm">-- monthly rental</span>
+<span class="fk">referred_by</span>      uuid → zi_partners.id  <span class="fm">-- agent who onboarded them</span>
+<span class="fn2">wallet_balance</span>   <span class="ft">numeric</span>        <span class="fm">-- ZiPay wallet</span>
+      </div>
+    </div>
+
+    <div class="schema">
+      <div class="sh">zi_match_proposals — supplier bids on requirements</div>
+      <div class="sb">
+<span class="pk">id</span>               uuid PRIMARY KEY
+<span class="fk">requirement_id</span>   uuid → zi_match_requirements.id
+<span class="fk">supplier_id</span>      uuid → zi_match_suppliers.id
+<span class="fn2">proposed_price</span>   <span class="ft">numeric</span>
+<span class="fn2">delivery_by</span>      <span class="ft">timestamptz</span>
+<span class="fn2">message</span>          <span class="ft">text</span>
+<span class="fn2">status</span>           <span class="ft">enum</span>           <span class="fm">-- pending|accepted|rejected|withdrawn</span>
+<span class="fn2">created_at</span>       <span class="ft">timestamptz</span>
+      </div>
+    </div>
+
+    <div class="schema">
+      <div class="sh">zi_match_deals — accepted and active deals</div>
+      <div class="sb">
+<span class="pk">id</span>               uuid PRIMARY KEY
+<span class="fk">requirement_id</span>   uuid → zi_match_requirements.id
+<span class="fk">proposal_id</span>      uuid → zi_match_proposals.id
+<span class="fk">supplier_id</span>      uuid → zi_match_suppliers.id
+<span class="fk">requester_id</span>     uuid → auth.users.id
+<span class="fn2">deal_amount</span>      <span class="ft">numeric</span>
+<span class="fn2">commission_rate</span>  <span class="ft">numeric</span>        <span class="fm">-- locked at time of deal</span>
+<span class="fn2">commission_amt</span>   <span class="ft">numeric</span>        <span class="fm">-- computed: deal_amount × rate</span>
+<span class="fn2">supplier_payout</span>  <span class="ft">numeric</span>        <span class="fm">-- deal_amount − commission</span>
+<span class="fn2">escrow_status</span>    <span class="ft">enum</span>           <span class="fm">-- held|partial_released|fully_released</span>
+<span class="fn2">status</span>           <span class="ft">enum</span>           <span class="fm">-- confirmed|in_progress|completed|disputed|cancelled</span>
+<span class="fk">agent_id</span>         uuid → zi_partners.id  <span class="fm">-- if agent assisted</span>
+<span class="fn2">agent_commission</span> <span class="ft">numeric</span>        <span class="fm">-- agent's cut (1–2%)</span>
+<span class="fn2">completed_at</span>     <span class="ft">timestamptz</span>
+<span class="fn2">created_at</span>       <span class="ft">timestamptz</span>
+      </div>
+    </div>
+
+    <div class="schema">
+      <div class="sh">zi_match_ratings — post-deal ratings from both sides</div>
+      <div class="sb">
+<span class="pk">id</span>               uuid PRIMARY KEY
+<span class="fk">deal_id</span>          uuid → zi_match_deals.id
+<span class="fn2">rated_by</span>         <span class="ft">enum</span>           <span class="fm">-- requester|supplier</span>
+<span class="fn2">rating</span>           <span class="ft">numeric</span>        <span class="fm">-- 1–5</span>
+<span class="fn2">review</span>           <span class="ft">text</span>
+<span class="fn2">created_at</span>       <span class="ft">timestamptz</span>
+      </div>
+    </div>
+
+  </div>
+  <footer><div class="fb2">Zi<span>Match</span></div><div>5 tables · Complete marketplace engine · Supabase ready</div></footer>
+</div>
+
+
+<!-- ══════ REVENUE ══════ -->
+<div class="page" id="page-revenue">
+  <div class="hdr">
+    <div class="eyebrow">ZiMatch — Business Model</div>
+    <h1>Three Revenue<br>Streams</h1>
+    <p>Commission + listing rental + priority boost. All automated. All compounding.</p>
+  </div>
+
+  <div class="sec">
+
+    <div class="rev-card">
+      <div class="rh">
+        <div class="rh-name" style="color:var(--green)">① Transaction Commission</div>
+        <div class="rh-amt">3–12% per deal</div>
+      </div>
+      <div class="rb">
+        Taken automatically from every completed deal via ZiPay escrow. Rate varies by category — supply 3–5%, transport 5–8%, professional services 8–12%. <strong>Guest suppliers pay higher commission</strong> — incentive to upgrade to paid listing tier. Commission is locked at deal time, cannot be disputed. This is the primary revenue engine.
+      </div>
+    </div>
+
+    <div class="rev-card">
+      <div class="rh">
+        <div class="rh-name" style="color:var(--gold)">② Supplier Listing Rental</div>
+        <div class="rh-amt">₹299–₹1,999/month</div>
+      </div>
+      <div class="rb">
+        Monthly subscription paid by suppliers to be listed and verified on ZiMatch. <strong>This is recurring revenue that doesn't depend on deal volume.</strong> Even if a supplier has a slow month with no deals, their listing fee still pays. Target: 500 suppliers at avg ₹600/month = ₹3L/month from listing fees alone, regardless of transaction volume.
+      </div>
+    </div>
+
+    <div class="rev-card">
+      <div class="rh">
+        <div class="rh-name" style="color:var(--cyan)">③ Priority Boost (Ad-Free Ranking)</div>
+        <div class="rh-amt">₹99–₹499 per boost</div>
+      </div>
+      <div class="rb">
+        Supplier pays to appear at the top of a specific requirement category for 7 or 30 days. <strong>Not traditional ads — pure ranking boost within relevant requirements.</strong> A rice distributor pays ₹199 to be top-ranked for all "rice/grains" requirements in Hyderabad for 30 days. Highly targeted, measurable ROI for supplier.
+      </div>
+    </div>
+
+    <div class="sec-label">Revenue Projection at Scale</div>
+    <div class="arch"><span class="c">── SCENARIO: 200 suppliers, 100 deals/month avg ──────</span>
+
+<span class="gold">Listing Rentals (recurring, deal-independent):</span>
+  50 Basic  × ₹299  = ₹14,950
+  100 Pro   × ₹799  = ₹79,900
+  50 Featured × ₹1,999 = ₹99,950
+<span class="g">  Total listing: ₹1,94,800/month</span>
+
+<span class="gold">Transaction Commission (deal volume):</span>
+  100 deals × avg deal ₹25,000 × avg 6% comm
+<span class="g">  = ₹1,50,000/month</span>
+
+<span class="gold">Priority Boosts:</span>
+  50 boosts × avg ₹250
+<span class="g">  = ₹12,500/month</span>
+
+<span class="c">─────────────────────────────────────────────</span>
+<span class="g">ZiMatch alone: ₹3.57L/month at 200 suppliers</span>
+<span class="g">At 2,000 suppliers + 1,000 deals: ₹35L+/month</span>
+<span class="c">─────────────────────────────────────────────</span>
+<span class="h">This is ON TOP of all Zi-app subscription revenue</span>
+<span class="h">And compounds — more suppliers = more deals = more commission</span></div>
+
+  </div>
+  <footer><div class="fb2">Zi<span>Match</span></div><div>Three streams · All automated · Listing fee = baseline even in slow months</div></footer>
+</div>
+
+
+<!-- ══════ BUILD PLAN ══════ -->
+<div class="page" id="page-build">
+  <div class="hdr">
+    <div class="eyebrow">ZiMatch — Implementation</div>
+    <h1>How to Build<br>ZiMatch</h1>
+    <p>Exact sequence. Start lean, grow into the full marketplace.</p>
+  </div>
+
+  <div class="sec">
+
+    <div class="impl">
+      <div class="ih"><div class="iphase ph1">Phase 1 — Now</div><div class="ititle">MVP: Post requirement → notify suppliers → deal done</div></div>
+      <div class="ib">
+        <div class="ii"><div class="id" style="background:var(--gold)"></div><div>Build <code style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--cyan)">zi_match_requirements</code> table + simple post form. Guest posts via OTP phone verification.</div></div>
+        <div class="ii"><div class="id" style="background:var(--gold)"></div><div>Build <code style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--cyan)">zi_match_suppliers</code> table. Manually onboard your first 10 suppliers in Hyderabad across 2–3 categories.</div></div>
+        <div class="ii"><div class="id" style="background:var(--gold)"></div><div>When requirement posted → ZiPost sends WhatsApp to matching suppliers. Simple text message: "New requirement: [title], [city], ₹[budget]. Reply to apply."</div></div>
+        <div class="ii"><div class="id" style="background:var(--gold)"></div><div>Supplier submits proposal via a simple form (no complex UI needed at MVP). Requester picks one.</div></div>
+        <div class="ii"><div class="id" style="background:var(--gold)"></div><div><strong>Manually facilitate first 20 deals.</strong> You are the marketplace engine initially. Learn what goes wrong before automating.</div></div>
+        <div class="ii"><div class="id" style="background:var(--gold)"></div><div>Collect commission manually (UPI transfer + ZiLedger entry) until ZiPay escrow is built.</div></div>
+      </div>
+    </div>
+
+    <div class="impl">
+      <div class="ih"><div class="iphase ph1">Phase 1 — Now</div><div class="ititle">Connect ZiRetail + ZiPawn to auto-post requirements</div></div>
+      <div class="ib">
+        <div class="ii"><div class="id" style="background:var(--gold)"></div><div>ZiRetail stock.low event → auto-creates requirement on ZiMatch. This is the killer feature — SMB doesn't even need to visit ZiMatch, it just works.</div></div>
+        <div class="ii"><div class="id" style="background:var(--gold)"></div><div>ZiPawn unclaimed item event → auto-creates auction requirement on ZiMatch.</div></div>
+        <div class="ii"><div class="id" style="background:var(--gold)"></div><div>These two connections immediately make ZiMatch useful to your existing ZiOrbit users from day one.</div></div>
+      </div>
+    </div>
+
+    <div class="impl">
+      <div class="ih"><div class="iphase ph2">Phase 2 — After 50 Deals Done</div><div class="ititle">ZiPay escrow + supplier dashboard + ratings</div></div>
+      <div class="ib">
+        <div class="ii"><div class="id" style="background:#8090ff"></div><div>Build ZiPay escrow flow — requester pays upfront, funds held, released on confirmation. This removes trust barrier completely.</div></div>
+        <div class="ii"><div class="id" style="background:#8090ff"></div><div>Supplier dashboard — see incoming requirements, manage proposals, track earnings, view ratings.</div></div>
+        <div class="ii"><div class="id" style="background:#8090ff"></div><div>Ratings system — both sides rate after completion. Ratings visible on profiles. This self-polices quality.</div></div>
+        <div class="ii"><div class="id" style="background:#8090ff"></div><div>Introduce supplier listing tiers. Charge Basic (₹299) and Pro (₹799) listing fees. First real recurring revenue from ZiMatch.</div></div>
+      </div>
+    </div>
+
+    <div class="impl">
+      <div class="ih"><div class="iphase ph3">Phase 3 — Scale</div><div class="ititle">Full marketplace — all categories, all cities, all features</div></div>
+      <div class="ib">
+        <div class="ii"><div class="id" style="background:var(--purple)"></div><div>Expand to all 6 categories. Transport + Labour + Professional services open up ZiFleet, ZiPilot, ZiCare connections.</div></div>
+        <div class="ii"><div class="id" style="background:var(--purple)"></div><div>Priority boost (paid ranking) feature for suppliers. First ad-like revenue stream.</div></div>
+        <div class="ii"><div class="id" style="background:var(--purple)"></div><div>ZiPartner agents get their own ZiMatch dashboard — see open requirements, introduce suppliers, track commission.</div></div>
+        <div class="ii"><div class="id" style="background:var(--purple)"></div><div>Dispute resolution flow — formal mediation process, ZiOrbit as neutral party.</div></div>
+        <div class="ii"><div class="id" style="background:var(--purple)"></div><div>Expand city by city — start Hyderabad, then Chennai, Bangalore, Mumbai, Delhi.</div></div>
+      </div>
+    </div>
+
+    <div class="sec-label">Add to CLAUDE.md Now</div>
+    <div class="arch"><span class="c">## ZiMatch — Requirement Marketplace</span>
+
+<span class="c"># What it is</span>
+<span class="g">Closed-loop requirement marketplace inside ZiOrbit.</span>
+<span class="g">Requesters (users + guests) post needs. Verified suppliers fulfill.</span>
+<span class="g">ZiOrbit earns commission + supplier listing rental.</span>
+
+<span class="c"># Core tables</span>
+<span class="gold">zi_match_requirements  -- posted requirements (users + guests)</span>
+<span class="gold">zi_match_suppliers     -- registered supplier profiles + tiers</span>
+<span class="gold">zi_match_proposals     -- supplier bids on requirements</span>
+<span class="gold">zi_match_deals         -- confirmed + active deals with escrow</span>
+<span class="gold">zi_match_ratings       -- post-deal ratings both sides</span>
+
+<span class="c"># Revenue model</span>
+<span class="p">① Commission: 3–12% per deal (auto-deducted via ZiPay)</span>
+<span class="p">② Listing rental: ₹299–1,999/month per supplier tier</span>
+<span class="p">③ Priority boost: ₹99–499 per 7/30 day ranking boost</span>
+
+<span class="c"># Supplier tiers</span>
+<span class="p">Guest (free) → Basic ₹299 → Pro ₹799 → Featured ₹1,999</span>
+
+<span class="c"># Inter-app triggers (Phase 1)</span>
+<span class="p">ZiRetail stock.low → auto-create zi_match_requirement</span>
+<span class="p">ZiPawn item.unclaimed → auto-create auction requirement</span>
+<span class="p">zi_match_requirement.created → ZiPost notify matching suppliers</span>
+<span class="p">zi_match_deal.completed → ZiPay release escrow</span>
+<span class="p">zi_match_deal.completed → ZiLedger record transaction both sides</span>
+
+<span class="c"># Phase 1 MVP approach</span>
+<span class="p">Manually onboard first 10 suppliers in Hyderabad</span>
+<span class="p">Facilitate first 20 deals manually before automating</span>
+<span class="p">Collect commission via UPI until ZiPay escrow built</span></div>
+
+  </div>
+  <footer><div class="fb2">Zi<span>Match</span></div><div>Start manual · Learn fast · Automate what works · Scale everywhere</div></footer>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
