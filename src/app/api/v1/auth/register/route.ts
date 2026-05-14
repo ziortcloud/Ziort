@@ -1,6 +1,7 @@
 // POST /api/v1/auth/register
 // Creates auth user + zi_individuals + zi_entities + zi_memberships in one shot.
 // Returns session tokens so the client can auto-login without a round-trip.
+import { randomUUID } from 'crypto'
 import { db } from '@/ziorbitcore/db/client'
 import { createClient } from '@supabase/supabase-js'
 import {
@@ -79,10 +80,14 @@ export const POST = withErrorHandler(async (req: Request) => {
       nextBranchCode(),
     ])
 
+    const individualId = randomUUID()
+    const entityId     = randomUUID()
+    const branchId     = randomUUID()
+
     // Create individual
     const { data: individual, error: indErr } = await db
       .from('zi_individuals')
-      .insert({ zi_code: indCode, display_name, country_code, preferred_lang, auth_user_id: authUserId, is_active: true })
+      .insert({ id: individualId, zi_code: indCode, display_name, country_code, preferred_lang, auth_user_id: authUserId, is_active: true })
       .select('id, zi_code')
       .single()
 
@@ -90,6 +95,7 @@ export const POST = withErrorHandler(async (req: Request) => {
 
     // Create email record
     await db.from('zi_individual_emails').insert({
+      id:            randomUUID(),
       individual_id: individual.id,
       email:         emailLower,
       is_current:    true,
@@ -99,7 +105,7 @@ export const POST = withErrorHandler(async (req: Request) => {
     // Create entity
     const { data: entity, error: entityErr } = await db
       .from('zi_entities')
-      .insert({ zi_code: entityCode, legal_name, entity_type, country_code, is_active: true })
+      .insert({ id: entityId, zi_code: entityCode, legal_name, entity_type, country_code, is_active: true })
       .select('id, zi_code')
       .single()
 
@@ -107,6 +113,7 @@ export const POST = withErrorHandler(async (req: Request) => {
 
     // Create primary branch
     await db.from('zi_branches').insert({
+      id:          branchId,
       zi_code:     branchCode,
       ref_code:    `${entityCode}${branchCode}`,
       entity_id:   entity.id,
@@ -119,6 +126,7 @@ export const POST = withErrorHandler(async (req: Request) => {
     // Create owner membership
     const memberRef = membershipRefCode(entityCode, indCode)
     await db.from('zi_memberships').insert({
+      id:               randomUUID(),
       ref_code:         memberRef,
       entity_id:        entity.id,
       individual_id:    individual.id,
