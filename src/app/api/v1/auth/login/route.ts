@@ -43,7 +43,8 @@ export const POST = withErrorHandler(async (req: Request) => {
     .single()
 
   if (indError || !individual) {
-    return unauthorized('Account not found or deactivated')
+    // Auth user exists but application record is missing — return session so client can redirect to setup
+    return unauthorized('SETUP_REQUIRED')
   }
 
   // Update last_seen_at

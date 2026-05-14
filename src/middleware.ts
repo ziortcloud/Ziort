@@ -12,6 +12,7 @@ const ALLOWED_ORIGINS = new Set([
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:4173',
+  'https://ziort-web.vercel.app',
   'https://app.ziort.com',
   'https://www.ziort.com',
   'https://ziort.com',

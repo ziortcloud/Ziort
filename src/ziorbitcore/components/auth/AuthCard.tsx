@@ -179,7 +179,14 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
       body: JSON.stringify(data),
     })
     const json = await res.json()
-    if (!res.ok) { setErr(json.error ?? 'Login failed'); return }
+    if (!res.ok) {
+      if (json.error === 'SETUP_REQUIRED') {
+        setErr('Your account is incomplete. Please register again to finish setup.')
+      } else {
+        setErr(json.error ?? 'Login failed')
+      }
+      return
+    }
 
     // Establish the browser-side Supabase session (sets cookies the middleware reads).
     // Without this the middleware sees no cookie and redirects back to /login.
@@ -251,6 +258,14 @@ function SignInForm({ onSwitch }: { onSwitch: () => void }) {
   )
 }
 
+const ENTITY_TYPES = [
+  { value: 'sole_proprietor', label: 'Sole Proprietor' },
+  { value: 'company',         label: 'Private / Public Company' },
+  { value: 'partnership',     label: 'Partnership Firm' },
+  { value: 'trust',           label: 'Trust / NGO' },
+  { value: 'individual',      label: 'Individual' },
+]
+
 // ─── Sign-Up form ─────────────────────────────────────────────────────────────
 function SignUpForm({ onSwitch }: { onSwitch: () => void }) {
   const router = useRouter()
@@ -271,8 +286,20 @@ function SignUpForm({ onSwitch }: { onSwitch: () => void }) {
     })
     const json = await res.json()
     if (!res.ok) { setErr(json.error ?? 'Registration failed'); return }
+
     setSuccess(true)
-    setTimeout(() => router.push('/login'), 3000)
+
+    // Auto-login if register returned session tokens
+    if (json.data?.access_token) {
+      const supabase = createZiortBrowserClient()
+      await supabase.auth.setSession({
+        access_token:  json.data.access_token,
+        refresh_token: json.data.refresh_token,
+      })
+      setTimeout(() => router.push('/dashboard'), 1800)
+    } else {
+      setTimeout(() => router.push('/login'), 3000)
+    }
   }
 
   if (success) {
@@ -288,14 +315,14 @@ function SignUpForm({ onSwitch }: { onSwitch: () => void }) {
           className="text-6xl"
         >🎉</motion.div>
         <p className="text-white font-bold text-xl">Account created!</p>
-        <p className="text-[13px] text-slate-400">Redirecting you to sign in…</p>
+        <p className="text-[13px] text-slate-400">Taking you to your workspace…</p>
         <div className="mx-auto w-24 h-1 rounded-full overflow-hidden"
              style={{ background: 'rgba(255,255,255,0.06)' }}>
           <motion.div
             className="h-full rounded-full"
             style={{ background: `linear-gradient(90deg, ${C_BLUE}, ${C_CYAN})` }}
             animate={{ width: ['0%', '100%'] }}
-            transition={{ duration: 3, ease: 'linear' }}
+            transition={{ duration: 2, ease: 'linear' }}
           />
         </div>
       </motion.div>
@@ -336,6 +363,30 @@ function SignUpForm({ onSwitch }: { onSwitch: () => void }) {
           {...register('password')}
         />
         <PasswordStrength pw={pw} />
+      </div>
+
+      <GlowInput
+        label="Business / Trade Name"
+        type="text"
+        placeholder="e.g. Sri Murugan Jewels"
+        autoComplete="organization"
+        error={errors.legal_name?.message}
+        {...register('legal_name')}
+      />
+
+      {/* Entity type */}
+      <div>
+        <label className="block text-[11px] font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
+          Business Type
+        </label>
+        <select
+          {...register('entity_type')}
+          className={INPUT_CLS}
+          style={{ boxShadow: '0 0 0 1px rgba(255,255,255,0.06)' }}
+        >
+          {ENTITY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+        </select>
+        {errors.entity_type && <p className="text-[11px] text-red-400 mt-1">{errors.entity_type.message}</p>}
       </div>
 
       {/* Country + Language */}

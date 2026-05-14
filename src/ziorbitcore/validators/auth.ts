@@ -1,11 +1,13 @@
 import { z } from 'zod'
 
 export const RegisterSchema = z.object({
-  display_name:      z.string().min(2).max(100),
-  email:             z.string().email(),
-  password:          z.string().min(8).max(72),
-  country_code:      z.string().length(2).default('IN'),
-  preferred_lang:    z.string().default('en'),
+  display_name:   z.string().min(2).max(100),
+  email:          z.string().email(),
+  password:       z.string().min(8).max(72),
+  country_code:   z.string().length(2).default('IN'),
+  preferred_lang: z.string().default('en'),
+  legal_name:     z.string().min(2).max(200),
+  entity_type:    z.string().min(2).max(60),
 })
 
 export const LoginSchema = z.object({
