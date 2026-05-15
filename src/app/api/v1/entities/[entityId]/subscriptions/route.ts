@@ -1,5 +1,6 @@
 ﻿// GET  /api/v1/entities/:entityId/subscriptions → list subscriptions
 // POST /api/v1/entities/:entityId/subscriptions → subscribe to a product
+import { randomUUID } from 'crypto'
 import { db } from '@/ziorbitcore/db/client'
 import { requireSession, requireEntityAccess } from '@/ziorbitcore/auth/session'
 import { nextSubscriptionCode, subscriptionRefCode } from '@/ziorbitcore/services/codes'
@@ -85,6 +86,7 @@ export const POST = withErrorHandler(async (req: Request, ctx: any) => {
   const { data: subscription, error: subError } = await db
     .from('zi_subscriptions')
     .insert({
+      id:               randomUUID(),
       zi_code:          sub_zi_code,
       entity_id:        entityId,
       ref_code,
